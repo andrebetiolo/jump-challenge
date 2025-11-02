@@ -1,0 +1,14 @@
+[
+    {
+        "name": "Financial",
+        "description": "This category filters everything related to a person's finances. If anything is mentioned about stock market shares, expenses, or income, it will fall into this category. It includes anything that would be of interest to the financial department of a company or an individual"
+    },
+    {
+        "name": "Sales",
+        "description": "Category that filters emails containing promotions for items, sales of objects, or advertisements for buying or selling something"
+    },
+    {
+        "name": "Newsletters",
+        "description": "This category includes all emails about newsletters that the user may receive, register for, or receive something related to a newsletter"
+    }
+]

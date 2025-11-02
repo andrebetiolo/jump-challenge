@@ -1,0 +1,1599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Organization App</title>
+    <!-- Materialize CSS -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- Custom styles -->
+    <style>
+        :root {
+            /* Consistent color palette */
+            --primary: #1976d2;
+            --primary-dark: #1565c0;
+            --primary-light: #bbdefb;
+            --secondary: #4caf50;
+            --accent: #ff4081;
+            --background: #f5f7fa;
+            --surface: #ffffff;
+            --text-primary: rgba(0, 0, 0, 0.87);
+            --text-secondary: rgba(0, 0, 0, 0.6);
+            --divider: rgba(0, 0, 0, 0.12);
+        }
+        
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--background);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 0;
+        }
+        
+        /* Navigation */
+        nav {
+            background-color: var(--primary);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .brand-logo {
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+        
+        /* Layout */
+        .app-container {
+            display: flex;
+            min-height: calc(100vh - 112px); /* Account for navbar height */
+        }
+        
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background-color: var(--surface);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            border-right: 1px solid var(--divider);
+            padding: 20px 0;
+            overflow-y: auto;
+            height: 100%;
+            position: sticky;
+            top: 112px;
+        }
+        
+        .sidebar-header {
+            padding: 0 24px 16px;
+            border-bottom: 1px solid var(--divider);
+            margin-bottom: 16px;
+        }
+        
+        .sidebar-title {
+            font-size: 18px;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin: 0 0 16px 0;
+        }
+        
+        /* Collection Items */
+        .collection {
+            border: none;
+            margin: 0;
+        }
+        
+        .collection .collection-item {
+            background-color: transparent;
+            border: none;
+            padding: 12px 24px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-radius: 0 24px 24px 0;
+            margin: 0 8px 4px 0;
+        }
+        
+        .collection .collection-item:hover {
+            background-color: rgba(25, 118, 210, 0.08);
+        }
+        
+        .collection .collection-item.active {
+            background-color: rgba(25, 118, 210, 0.15);
+            color: var(--primary);
+            font-weight: 500;
+        }
+        
+        .collection .collection-item i {
+            font-size: 20px;
+            margin-right: 16px;
+            color: var(--text-secondary);
+        }
+        
+        .collection .collection-item.active i {
+            color: var(--primary);
+        }
+        
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+        }
+        
+        .content-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        
+        .content-title {
+            font-size: 24px;
+            font-weight: 500;
+            margin: 0;
+            color: var(--text-primary);
+        }
+        
+        /* Search Bar */
+        .search-container {
+            flex: 1
+        }
+        
+        .input-field {
+            margin-top: 0;
+        }
+        
+        .input-field i.prefix {
+            font-size: 20px;
+            left: 6px;
+            top: 10px;
+            color: var(--text-secondary);
+        }
+        
+        #search-emails {
+            margin: 0;
+            padding-left: 36px;
+            border-bottom: 1px solid var(--divider);
+            box-shadow: none;
+        }
+        
+        /* Action Buttons */
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        
+        .btn, .btn-flat {
+            border-radius: 8px;
+            text-transform: none;
+            font-weight: 500;
+            letter-spacing: 0.25px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            height: 36px;
+            line-height: 36px;
+        }
+        
+        .btn {
+            background-color: var(--primary);
+        }
+        
+        .btn:hover {
+            background-color: var(--primary-dark);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        /* Email List */
+        .email-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .email-list-item {
+            background-color: var(--surface);
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            transition: all 0.2s ease;
+            border: 1px solid var(--divider);
+            padding: 0 !important;
+        }
+        
+        .email-list-item:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.08);
+        }
+        
+        .email-list-content {
+            padding: 16px;
+        }
+        
+        .email-list-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        
+        .email-list-main {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .email-list-meta {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            min-width: 180px;
+            text-align: right;
+        }
+        
+        .email-subject {
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin: 0 0 8px 0;
+            line-height: 1.4;
+        }
+        
+        .email-category {
+            display: inline-block;
+            padding: 4px 12px;
+            background-color: var(--primary-light);
+            color: var(--primary-dark);
+            border-radius: 16px;
+            font-size: 12px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .email-date {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        
+        .email-summary {
+            color: var(--text-secondary);
+            font-size: 14px;
+            line-height: 1.5;
+            margin: 0;
+        }
+        
+        .email-list-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid var(--divider);
+            padding-top: 12px;
+        }
+        
+        .email-action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .email-action-buttons .btn-flat {
+            display: flex;
+            align-items: center;
+            color: var(--text-secondary);
+            box-shadow: none;
+            padding: 0 12px;
+            min-height: auto;
+            line-height: inherit;
+        }
+        
+        .email-action-buttons .btn-flat:hover {
+            background-color: rgba(0,0,0,0.04);
+        }
+        
+        .email-actions .btn-flat {
+            color: var(--text-secondary);
+            box-shadow: none;
+            padding: 0 12px;
+        }
+        
+        .email-actions .btn-flat:hover {
+            background-color: rgba(0,0,0,0.04);
+        }
+        
+        .email-from {
+            color: var(--text-secondary);
+            font-size: 13px;
+            margin: 4px 0;
+        }
+        
+        .selection-checkbox-main {
+            display: flex;
+            align-items: flex-start;
+            margin-right: 12px;
+        }
+        
+        .selection-checkbox-main input[type="checkbox"] {
+            margin-top: 4px;
+        }
+        
+        .email-list-header {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 12px;
+            gap: 16px;
+        }
+        
+        .selection-checkbox-main {
+            display: flex;
+            align-items: flex-start;
+            margin-right: 12px;
+            flex-shrink: 0; /* Don't let this flex item shrink */
+        }
+        
+        .selection-checkbox-main input[type="checkbox"] {
+            margin-top: 4px;
+        }
+        
+        /* Ensure collection items are properly formatted */
+        .email-list-item {
+            border-left: none;
+            border-right: none;
+            padding: 16px !important;
+        }
+        
+        /* Ensure the checkbox is visible and properly aligned */
+        .selection-checkbox-main label {
+            margin-bottom: 0;
+            display: block;
+        }
+        
+        .email-list-content {
+            width: 100%;
+        }
+        
+        /* Make sure the checkbox is visible */
+        .selection-checkbox-main input[type="checkbox"] {
+            visibility: visible !important;
+            opacity: 1 !important;
+            cursor: pointer;
+            z-index: 1;
+            position: relative;
+        }
+        
+        .selection-checkbox-main label {
+            cursor: pointer;
+            z-index: 1;
+            position: relative;
+        }
+        
+        .selection-checkbox-main span {
+            cursor: pointer;
+        }
+        
+        .bulk-actions-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px;
+            background-color: var(--primary-light);
+            border-radius: 8px;
+        }
+        
+        .bulk-actions-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        #bulk-actions-toolbar .row {
+            margin-bottom: 0;
+        }
+        
+        /* Summary Card */
+        .summary-card {
+            background-color: #e8f5e9;
+            border-left: 4px solid var(--secondary);
+            padding: 16px;
+            border-radius: 8px;
+            margin: 16px 0;
+        }
+        
+        .summary-card strong {
+            color: #2e7d32;
+        }
+        
+        /* Modals */
+        .modal {
+            border-radius: 12px;
+            max-height: 90%;
+        }
+        
+        .modal-content {
+            padding: 24px;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .modal-title {
+            font-size: 20px;
+            font-weight: 500;
+            margin: 0;
+        }
+        
+        .input-field {
+            margin-top: 1rem;
+        }
+        
+        label {
+            color: var(--text-secondary);
+        }
+        
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            background-color: var(--surface);
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            border: 1px solid var(--divider);
+        }
+        
+        .empty-state-icon {
+            font-size: 48px;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+        }
+        
+        .empty-state-title {
+            font-size: 20px;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin: 0 0 8px 0;
+        }
+        
+        .empty-state-text {
+            color: var(--text-secondary);
+            margin: 0 0 24px 0;
+        }
+        
+        /* Loading */
+        .loading-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 200px;
+        }
+        
+        .spinner-blue-only {
+            border-color: var(--primary);
+        }
+        
+        /* Responsive Design */
+        @media only screen and (max-width: 992px) {
+            .app-container {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                position: relative;
+                top: 0;
+                height: auto;
+                padding: 16px 0;
+            }
+            
+            .main-content {
+                padding: 16px;
+            }
+            
+            .content-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .search-container {
+                max-width: 100%;
+            }
+            
+            .action-buttons {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+        
+        /* Utilities */
+        .mt-0 { margin-top: 0 !important; }
+        .mb-0 { margin-bottom: 0 !important; }
+        .mt-16 { margin-top: 16px !important; }
+        .mb-16 { margin-bottom: 16px !important; }
+        .p-0 { padding: 0 !important; }
+        
+        /* Selection Checkbox */
+        .selection-checkbox {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+        }
+        
+        .selection-checkbox input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+        }
+        
+        .selection-checkbox label {
+            padding-left: 24px;
+            height: 18px;
+            line-height: 18px;
+        }
+        
+        /* Category Colors */
+        .category-work { background-color: #e3f2fd; color: #1976d2; }
+        .category-personal { background-color: #fce4ec; color: #c2185b; }
+        .category-financial { background-color: #e8f5e9; color: #388e3c; }
+        .category-sales { background-color: #fff3e0; color: #ef6c00; }
+        .category-newsletters { background-color: #f3e5f5; color: #7b1fa2; }
+        .category-all { background-color: #eeeeee; color: #616161; }
+        
+        /* Delete Category Icon */
+        .delete-category-icon {
+            cursor: pointer;
+            opacity: 0.6;
+            transition: opacity 0.2s ease;
+        }
+        
+        .delete-category-icon:hover {
+            opacity: 1;
+            color: #f44336; /* Red color on hover */
+        }
+        
+        /* Sync Loading Overlay */
+        .sync-loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            backdrop-filter: blur(2px);
+        }
+        
+        .sync-loading-content {
+            text-align: center;
+            padding: 32px;
+            background-color: var(--surface);
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+            max-width: 90%;
+            width: 400px;
+        }
+        
+        .sync-loading-text {
+            font-size: 20px;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin: 24px 0 8px 0;
+        }
+        
+        .sync-loading-content p {
+            color: var(--text-secondary);
+            margin: 0 0 16px 0;
+        }
+        
+        /* Tabs */
+        .tabs {
+            overflow-x: auto;
+            overflow-y: hidden;
+        }
+        
+        .tabs .tab a {
+            color: rgba(255,255,255,0.7);
+        }
+        
+        .tabs .tab a:hover,
+        .tabs .tab a.active {
+            color: white;
+            background-color: rgba(255,255,255,0.2);
+        }
+        
+        .tabs .indicator {
+            background-color: white;
+        }
+        
+        /* Section Headers */
+        .section-header {
+            margin: 24px 0 16px 0;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--divider);
+        }
+        
+        .section-title {
+            font-size: 18px;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav>
+        <div class="nav-wrapper">
+            <a href="#" class="brand-logo center">Email Organizer</a>
+            <a href="#" data-target="mobile-sidebar" class="sidenav-trigger left"><i class="material-icons">menu</i></a>
+            <ul id="nav-mobile" class="right hide-on-med-and-down">
+                <li><a href="#" onclick="handleLogout()">Logout</a></li>
+            </ul>
+        </div>
+        <div class="nav-content">
+            <ul class="tabs tabs-transparent">
+                <li class="tab"><a href="#emails" class="active">Emails</a></li>
+                <li class="tab"><a href="#categories">Categories</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Main App Container -->
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2 class="sidebar-title">Categories</h2>
+            </div>
+            
+            <ul class="collection">
+                <li>
+                    <a href="#" onclick="filterByCategory('all')" class="collection-item active category-link">
+                        <i class="material-icons left">inbox</i>All Emails
+                    </a>
+                </li>
+                <div id="categories-list"></div>
+            </ul>
+            
+            <div class="section mt-16 mb-0 p-0">
+                <div class="sidebar-header">
+                    <h3 class="sidebar-title">Actions</h3>
+                </div>
+                
+                <div class="collection">
+                    <li>
+                        <a class="collection-item" onclick="syncEmails()">
+                            <i class="material-icons left">sync</i>Sync Emails
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#create-category-modal" class="collection-item modal-trigger">
+                            <i class="material-icons left">add</i>New Category
+                        </a>
+                    </li>
+                </div>
+                
+                <div class="section" style="padding: 1rem 2rem 0 2rem">
+                    <h3 class="sidebar-title">Bulk Actions</h3>
+                    <div class="input-field">
+                        <select id="bulk-action-select">
+                            <option value="" disabled selected>Choose action</option>
+                            <option value="archive">Archive</option>
+                            <option value="read">Mark as Read</option>
+                        </select>
+                    </div>
+                    <button class="btn waves-effect waves-light full-width mb-16" onclick="performBulkAction()">
+                        <i class="material-icons left">done</i>Apply
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <div class="content-header">
+                <h1 class="content-title">Your Emails</h1>
+                
+                <div class="search-container">
+                    <div class="input-field">
+                        <i class="material-icons prefix">search</i>
+                        <input type="text" id="search-emails" placeholder="Search emails..." oninput="debounceSearch()">
+                    </div>
+                </div>
+                
+                <div class="action-buttons">
+                    <button class="btn waves-effect waves-light" onclick="syncEmails()">
+                        <i class="material-icons left">refresh</i>Sync
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Bulk Actions Toolbar -->
+            <div id="bulk-actions-toolbar" class="bulk-actions-container" style="display: none; margin-bottom: 16px; padding: 12px; background-color: var(--primary-light); border-radius: 8px;">
+                <div class="row">
+                    <div class="col s12 m6">
+                        <span id="selected-count">0 emails selected</span>
+                    </div>
+                    <div class="col s12 m6">
+                        <div class="bulk-actions-controls">
+                            <select id="bulk-action-select">
+                                <option value="" disabled selected>Bulk Action</option>
+                                <option value="archive">Archive</option>
+                                <option value="delete">Delete</option>
+                            </select>
+                            <button class="btn waves-effect waves-light" onclick="performBulkAction()" style="margin-left: 8px;">
+                                Apply
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="email-grid" id="email-list">
+                <!-- Email items will be loaded here -->
+            </div>
+            
+            <!-- Sync Loading Overlay -->
+            <div id="sync-loading-overlay" class="sync-loading-overlay" style="display: none;">
+                <div class="sync-loading-content">
+                    <div class="preloader-wrapper big active">
+                        <div class="spinner-layer spinner-blue-only">
+                            <div class="circle-clipper left">
+                                <div class="circle"></div>
+                            </div>
+                            <div class="gap-patch">
+                                <div class="circle"></div>
+                            </div>
+                            <div class="circle-clipper right">
+                                <div class="circle"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <h4 class="sync-loading-text">Syncing emails...</h4>
+                    <p>Please wait while we fetch your emails from Gmail</p>
+                </div>
+            </div>
+            
+            <div class="loading-container" id="loading-indicator" style="display: none;">
+                <div class="preloader-wrapper big active">
+                    <div class="spinner-layer spinner-blue-only">
+                        <div class="circle-clipper left">
+                            <div class="circle"></div>
+                        </div>
+                        <div class="gap-patch">
+                            <div class="circle"></div>
+                        </div>
+                        <div class="circle-clipper right">
+                            <div class="circle"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="no-emails-message" class="empty-state" style="display: none;">
+                <div class="empty-state-icon">
+                    <i class="material-icons large">inbox</i>
+                </div>
+                <h3 class="empty-state-title">No emails found</h3>
+                <p class="empty-state-text">Click the Sync button to fetch new emails from Gmail</p>
+                <button class="btn waves-effect waves-light" onclick="syncEmails()">
+                    <i class="material-icons left">sync</i>Sync Now
+                </button>
+            </div>
+        </main>
+    </div>
+
+    <!-- Mobile sidebar (sidenav) -->
+    <ul class="sidenav" id="mobile-sidebar">
+        <li><a href="#" class="subheader">Categories</a></li>
+        <li><a href="#" onclick="filterByCategory('all')" class="category-link">All Emails</a></li>
+        <div id="mobile-categories-list"></div>
+        <li><div class="divider"></div></li>
+        <li><a href="#create-category-modal" class="modal-trigger"><i class="material-icons">add</i>New Category</a></li>
+        <li><a href="#" onclick="syncEmails()"><i class="material-icons">sync</i>Sync Emails</a></li>
+        <li><a href="#" onclick="handleLogout()"><i class="material-icons">exit_to_app</i>Logout</a></li>
+    </ul>
+
+    <!-- Create Category Modal -->
+    <div id="create-category-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Create New Category</h4>
+                <a href="#!" class="modal-close waves-effect btn-flat">
+                    <i class="material-icons">close</i>
+                </a>
+            </div>
+            
+            <form id="create-category-form">
+                <div class="row">
+                    <div class="input-field col s12">
+                        <i class="material-icons prefix">label</i>
+                        <input id="category-name" type="text" required>
+                        <label for="category-name">Category Name</label>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="input-field col s12">
+                        <i class="material-icons prefix">description</i>
+                        <textarea id="category-description" class="materialize-textarea" required></textarea>
+                        <label for="category-description">Description</label>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <a href="#!" class="modal-close waves-effect btn-flat">Cancel</a>
+            <a href="#!" class="waves-effect waves-light btn" onclick="createCategory()">Save</a>
+        </div>
+    </div>
+
+    <!-- Email Details Modal -->
+    <div id="email-details-modal" class="modal modal-fixed-footer">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="email-subject-detail"></h4>
+                <a href="#!" class="modal-close waves-effect btn-flat">
+                    <i class="material-icons">close</i>
+                </a>
+            </div>
+            
+            <div class="row">
+                <div class="col s12">
+                    <p><strong>From:</strong> <span id="email-from-detail"></span></p>
+                    <p><strong>Date:</strong> <span id="email-date-detail"></span></p>
+                    <p><strong>Subject:</strong> <span id="email-subject-detail-modal"></span></p>
+                </div>
+            </div>
+            
+            <div class="summary-card">
+                <strong>AI Summary:</strong>
+                <p id="email-summary-detail"></p>
+            </div>
+            
+            <div class="row">
+                <div class="col s12">
+                    <strong>Body:</strong>
+                    <iframe id="email-body-iframe" style="width: 100%; min-height: 400px; border: 1px solid #ddd; background: white;"></iframe>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <a href="#!" class="modal-close waves-effect btn-flat">Close</a>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+    
+    <script>
+        // Define constants
+        const GOTHIC_SESSION_COOKIE = 'gothic_session';
+        
+        // Initialize Materialize components
+        $(document).ready(function(){
+            $('.modal').modal();
+            $('.sidenav').sidenav();
+            $('select').formSelect();
+            
+            // Load categories and emails
+            loadCategories();
+            loadEmails();
+        });
+        
+        // Global variables
+        let currentCategory = 'all';
+        let selectedEmails = [];
+        let allEmails = [];
+        let allCategories = [];
+        
+        // Event delegation for dynamically added checkboxes
+        document.addEventListener('change', function(e) {
+            if (e.target && e.target.type === 'checkbox' && e.target.dataset.emailId) {
+                toggleEmailSelection(e.target.dataset.emailId);
+            }
+        });
+        
+        // Function to get cookie value by name
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+        }
+        
+        // Function to delete cookie by name
+        function deleteCookie(name) {
+            // Set the cookie with expiration in the past to delete it
+            document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+        }
+        
+        // Function to handle logout
+        function handleLogout() {
+            // Remove the gothic_session cookie
+            deleteCookie(GOTHIC_SESSION_COOKIE);
+            
+            // Redirect to home page
+            window.location.href = '/';
+        }
+        
+        // Load categories from API
+        function loadCategories() {
+            fetch('/api/categories')
+                .then(response => {
+                    if (response.status === 401) {
+                        // Redirect to login if unauthorized
+                        window.location.href = '/';
+                        return;
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data) { // Only process if we got valid data (not redirected)
+                        allCategories = data;
+                        renderCategories();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading categories:', error);
+                    // Redirect to login on network errors as well
+                    if (error.name !== 'TypeError') {
+                        window.location.href = '/';
+                    }
+                });
+        }
+        
+        // Render categories in sidebar
+        function renderCategories() {
+            const categoriesHtml = allCategories.map(category => `
+                <li>
+                    <a href="#" onclick="filterByCategory('${category.id}')" class="collection-item category-link">
+                        <i class="material-icons left">label</i>${category.name}
+                        <i class="material-icons right delete-category-icon" onclick="deleteCategory('${category.id}'); event.stopPropagation();">delete</i>
+                    </a>
+                </li>
+            `).join('');
+            
+            const mobileCategoriesHtml = allCategories.map(category => `
+                <li>
+                    <a href="#" onclick="filterByCategory('${category.id}')" class="category-link">
+                        ${category.name}
+                        <i class="material-icons right delete-category-icon" onclick="deleteCategory('${category.id}'); event.stopPropagation();">delete</i>
+                    </a>
+                </li>
+            `).join('');
+            
+            document.getElementById('categories-list').innerHTML = categoriesHtml;
+            document.getElementById('mobile-categories-list').innerHTML = mobileCategoriesHtml;
+            
+            // Update Materialize components
+            $('select').formSelect();
+        }
+        
+        // Load emails from API
+        function loadEmails() {
+            showLoading();
+            
+            fetch('/api/emails')
+                .then(response => {
+                    if (response.status === 401) {
+                        // Redirect to login if unauthorized
+                        window.location.href = '/';
+                        return;
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data === null) { 
+                        syncEmailsInitial();
+                    } else {
+                        allEmails = data;
+                        renderEmails(allEmails);
+                    }
+                    hideLoading();
+                })
+                .catch(error => {
+                    console.error('Error loading emails:', error);
+                    hideLoading();
+                    // Redirect to login on network errors as well
+                    if (error.name !== 'TypeError') {
+                        window.location.href = '/';
+                    }
+                });
+        }
+        
+        // Filter emails by category
+        function filterByCategory(categoryId) {
+            currentCategory = categoryId;
+            
+            // Update active state in UI
+            document.querySelectorAll('.category-link').forEach(el => {
+                el.classList.remove('active');
+            });
+            
+            event.target.classList.add('active');
+            
+            if (categoryId === 'all') {
+                renderEmails(allEmails);
+            } else {
+                const filteredEmails = allEmails.filter(email => email.category_id === categoryId);
+                renderEmails(filteredEmails);
+            }
+        }
+        
+        // Render emails in the list
+        function renderEmails(emails) {
+            if (emails.length === 0) {
+                document.getElementById('email-list').innerHTML = '';
+                document.getElementById('no-emails-message').style.display = 'block';
+                return;
+            }
+            
+            document.getElementById('no-emails-message').style.display = 'none';
+            
+            const emailsHtml = emails.map(email => {
+                // Get category for styling
+                const category = allCategories.find(cat => cat.id === email.category_id);
+                const categoryName = category ? category.name : 'Uncategorized';
+                const categoryClass = getCategoryClass(categoryName);
+                
+                return `
+                <div class="collection-item email-list-item">
+                    <div class="email-list-content">
+                        <div class="email-list-header">
+                            <div>
+                                <label>
+                                    <input type="checkbox" id="email-${email.id}" data-email-id="${email.id}" onchange="toggleEmailSelection('${email.id}')" />
+                                    <span></span>
+                                </label>
+                            </div>
+                            <div class="email-list-main">
+                                <h3 class="email-subject">${email.subject}</h3>
+                                <p class="email-from"><strong>From:</strong> ${email.from || 'Unknown'}</p>
+                                <p class="email-summary">${email.summary || 'No summary available'}</p>
+                            </div>
+                            <div class="email-list-meta">
+                                <span class="email-category ${categoryClass}">${categoryName}</span>
+                                <span class="email-date">${formatDate(email.received_at)}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="email-list-actions">
+                            <div class="email-action-buttons">
+                                <a href="#" class="btn-flat" onclick="showEmailDetails('${email.id}')">
+                                    <i class="material-icons left">visibility</i>View
+                                </a>
+                                <a href="#" class="btn-flat" onclick="archiveEmail('${email.id}')">
+                                    <i class="material-icons left">archive</i>Archive
+                                </a>
+                                <a href="#" class="btn-flat" onclick="deleteEmail('${email.id}')">
+                                    <i class="material-icons left">delete</i>Delete
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                `;
+            }).join('');
+            
+            document.getElementById('email-list').innerHTML = emailsHtml;
+            
+            // Reinitialize Materialize form elements after adding new content
+            M.updateTextFields();
+            $('select').formSelect(); // Reinitialize any selects that might have been added
+            
+            // Reinitialize checkboxes for the new email items
+            // Materialize automatically converts checkboxes when document is ready, 
+            // but for dynamically added ones we need to ensure they're properly initialized
+            // The checkboxes should now work with our event delegation
+        }
+        
+        // Get CSS class for category coloring
+        function getCategoryClass(categoryName) {
+            const normalized = categoryName.toLowerCase();
+            if (normalized.includes('work')) return 'category-work';
+            if (normalized.includes('personal')) return 'category-personal';
+            if (normalized.includes('financial') || normalized.includes('finance')) return 'category-financial';
+            if (normalized.includes('sales')) return 'category-sales';
+            if (normalized.includes('newsletter')) return 'category-newsletters';
+            if (normalized.includes('all')) return 'category-all';
+            return 'category-all'; // default
+        }
+        
+        // Format date for display
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric'
+            });
+        }
+        
+        // Toggle email selection for bulk actions
+        function toggleEmailSelection(emailId) {
+            const checkbox = document.getElementById(`email-${emailId}`);
+            if (checkbox.checked) {
+                if (!selectedEmails.includes(emailId)) {
+                    selectedEmails.push(emailId);
+                }
+            } else {
+                selectedEmails = selectedEmails.filter(id => id !== emailId);
+            }
+            
+            updateBulkActionToolbar();
+        }
+        
+        // Update the bulk action toolbar visibility and count
+        function updateBulkActionToolbar() {
+            const toolbar = document.getElementById('bulk-actions-toolbar');
+            const countElement = document.getElementById('selected-count');
+            
+            if (selectedEmails.length > 0) {
+                toolbar.style.display = 'block';
+                countElement.textContent = selectedEmails.length + ' email' + (selectedEmails.length !== 1 ? 's' : '') + ' selected';
+            } else {
+                toolbar.style.display = 'none';
+            }
+        }
+        
+        // Select all emails
+        function selectAllEmails() {
+            const checkboxes = document.querySelectorAll('.email-list-item input[type="checkbox"]');
+            const allSelected = checkboxes.length > 0 && Array.from(checkboxes).every(cb => cb.checked);
+            
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = !allSelected;
+                if (!allSelected) {
+                    if (!selectedEmails.includes(checkbox.id.replace('email-', ''))) {
+                        selectedEmails.push(checkbox.id.replace('email-', ''));
+                    }
+                } else {
+                    selectedEmails = selectedEmails.filter(id => id !== checkbox.id.replace('email-', ''));
+                }
+            });
+            
+            updateBulkActionToolbar();
+        }
+        
+        // Show email details in modal
+        function showEmailDetails(emailId) {
+            const email = allEmails.find(e => e.id === emailId);
+            if (email) {
+                document.getElementById('email-subject-detail').textContent = email.subject;
+                document.getElementById('email-subject-detail-modal').textContent = email.subject;
+                document.getElementById('email-from-detail').textContent = email.from || 'Unknown';
+                document.getElementById('email-date-detail').textContent = new Date(email.received_at).toLocaleString();
+                document.getElementById('email-summary-detail').textContent = email.summary || 'No summary available';
+                
+                // Populate the iframe with email body
+                const iframe = document.getElementById('email-body-iframe');
+                const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                
+                // Set the iframe content
+                const emailBody = email.body ? formatEmailBody(email.body) : 'No body content';
+                
+                // Create a complete HTML document with basic styling
+                const htmlContent = `
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <meta charset="UTF-8">
+                        <style>
+                            body {
+                                font-family: Arial, sans-serif;
+                                margin: 10px;
+                                font-size: 14px;
+                                line-height: 1.5;
+                            }
+                            img {
+                                max-width: 100%;
+                                height: auto;
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        ${emailBody}
+                    </body>
+                    </html>
+                `;
+                
+                iframeDoc.open();
+                iframeDoc.write(htmlContent);
+                iframeDoc.close();
+                
+                $('#email-details-modal').modal('open');
+            }
+        }
+        
+        // Format email body for better display
+        function formatEmailBody(body) {
+            // Check if the body is already HTML by looking for common HTML tags
+            if (body.includes('<html>') || body.includes('<body>') || body.includes('<p>') || 
+                body.includes('<div>') || body.includes('<br>') || body.includes('<span>') ||
+                body.includes('<a>') || body.includes('<img>') || body.includes('<table>')) {
+                // If it's already HTML, return it as is
+                return body;
+            } else {
+                // For plain text, convert line breaks to paragraphs
+                return '<p>' + body.replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>') + '</p>';
+            }
+        }
+        
+        // Create a new category
+        function createCategory() {
+            const name = document.getElementById('category-name').value;
+            const description = document.getElementById('category-description').value;
+            
+            if (!name) {
+                document.getElementById('category-name').focus();
+                M.toast({html: 'Category name is required'});
+                return;
+            }
+
+            if (!description) {
+                M.toast({html: 'Description name is required'});
+                 document.getElementById('category-description').focus();
+                return;
+            }
+            
+            fetch('/api/categories', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    name: name,
+                    description: description
+                })
+            })
+            .then(response => {
+                if (response.status === 401) {
+                    // Redirect to login if unauthorized
+                    window.location.href = '/';
+                    return;
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data) { // Only process if we got valid data (not redirected)
+                    M.toast({html: 'Category created successfully'});
+                    $('#create-category-modal').modal('close');
+                    
+                    // Reset form
+                    document.getElementById('create-category-form').reset();
+                    
+                    // Reload categories
+                    loadCategories();
+                }
+            })
+            .catch(error => {
+                console.error('Error creating category:', error);
+                M.toast({html: 'Error creating category'});
+                // Redirect to login on network errors as well
+                if (error.name !== 'TypeError') {
+                    window.location.href = '/';
+                }
+            });
+        }
+        
+        // Delete a single email
+        function deleteEmail(emailId) {
+            if (confirm('Are you sure you want to delete this email? This will remove it from both Gmail and this application.')) {
+                fetch('/api/emails', {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email_ids: [emailId]
+                    })
+                })
+                .then(response => {
+                    if (response.status === 401) {
+                        // Redirect to login if unauthorized
+                        window.location.href = '/';
+                        return;
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data) { // Only process if we got valid data (not redirected)
+                        M.toast({html: 'Email deleted successfully'});
+                        // Reload emails
+                        loadEmails();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting email:', error);
+                    M.toast({html: 'Error deleting email'});
+                    // Redirect to login on network errors as well
+                    if (error.name !== 'TypeError') {
+                        window.location.href = '/';
+                    }
+                });
+            }
+        }
+
+        // Archive a single email
+        function archiveEmail(emailId) {
+            fetch('/api/emails/bulk-action', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    email_ids: [emailId],
+                    action: 'archive'
+                })
+            })
+            .then(response => {
+                if (response.status === 401) {
+                    // Redirect to login if unauthorized
+                    window.location.href = '/';
+                    return;
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data) { // Only process if we got valid data (not redirected)
+                    M.toast({html: 'Email archived'});
+                    // Reload emails
+                    loadEmails();
+                }
+            })
+            .catch(error => {
+                console.error('Error archiving email:', error);
+                M.toast({html: 'Error archiving email'});
+                // Redirect to login on network errors as well
+                if (error.name !== 'TypeError') {
+                    window.location.href = '/';
+                }
+            });
+        }
+        
+        // Perform bulk action on selected emails
+        function performBulkAction() {
+            const action = document.getElementById('bulk-action-select').value;
+            
+            if (!action) {
+                M.toast({html: 'Please select an action'});
+                return;
+            }
+            
+            if (selectedEmails.length === 0) {
+                M.toast({html: 'Please select at least one email'});
+                return;
+            }
+            
+            // Confirm delete action
+            if (action === 'delete' && !confirm(`Are you sure you want to delete ${selectedEmails.length} email(s)?`)) {
+                return;
+            }
+            
+            // Use different endpoint for delete action
+            let url = '/api/emails/bulk-action';
+            let method = 'POST';
+            
+            if (action === 'delete') {
+                url = '/api/emails';
+                method = 'DELETE';
+            }
+            
+            let body = null;
+            if (method === 'DELETE') {
+                body = JSON.stringify({ email_ids: selectedEmails });
+            } else {
+                body = JSON.stringify({
+                    email_ids: selectedEmails,
+                    action: action
+                });
+            }
+            
+            fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: body
+            })
+            .then(response => {
+                if (response.status === 401) {
+                    // Redirect to login if unauthorized
+                    window.location.href = '/';
+                    return;
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data) { // Only process if we got valid data (not redirected)
+                    M.toast({html: `${selectedEmails.length} emails ${action}d successfully`});
+                    
+                    // Clear selections
+                    selectedEmails = [];
+                    
+                    // Update UI to hide bulk action toolbar
+                    updateBulkActionToolbar();
+                    
+                    // Reload emails
+                    loadEmails();
+                }
+            })
+            .catch(error => {
+                console.error('Error performing bulk action:', error);
+                M.toast({html: `Error ${action === 'delete' ? 'deleting' : 'performing bulk'} action`});
+                // Redirect to login on network errors as well
+                if (error.name !== 'TypeError') {
+                    window.location.href = '/';
+                }
+            });
+        }
+        
+        // Sync emails from Gmail
+        function syncEmails() {
+            // Show sync loading overlay
+            document.getElementById('sync-loading-overlay').style.display = 'flex';
+            
+            fetch('/api/emails/sync', {
+                method: 'POST'
+            })
+            .then(response => {
+                if (response.status === 401) {
+                    // Redirect to login if unauthorized
+                    window.location.href = '/';
+                    return;
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data) { // Only process if we got valid data (not redirected)
+                    M.toast({html: 'Email sync started'});
+                    // Reload emails after a delay to allow processing
+                    setTimeout(() => {
+                        loadEmails();
+                        // Hide sync loading overlay after sync is complete
+                        document.getElementById('sync-loading-overlay').style.display = 'none';
+                    }, 2000);
+                } else {
+                    // Hide sync loading overlay if there was an error
+                    document.getElementById('sync-loading-overlay').style.display = 'none';
+                }
+            })
+            .catch(error => {
+                console.error('Error syncing emails:', error);
+                M.toast({html: 'Error syncing emails'});
+                // Hide sync loading overlay after error
+                document.getElementById('sync-loading-overlay').style.display = 'none';
+                // Redirect to login on network errors as well
+                if (error.name !== 'TypeError') {
+                    window.location.href = '/';
+                }
+            });
+        }
+        
+        // Debounce timer for search
+        let searchDebounceTimer;
+        
+        // Debounced search function
+        function debounceSearch() {
+            clearTimeout(searchDebounceTimer);
+            searchDebounceTimer = setTimeout(filterEmails, 1000);
+        }
+        
+        // Filter emails based on search term
+        function filterEmails() {
+            const searchTerm = document.getElementById('search-emails').value.toLowerCase().trim();
+            
+            // If search term is empty, show all emails
+            if (searchTerm === '') {
+                renderEmails(allEmails);
+                return;
+            }
+            
+            // Filter emails that match the search term in subject or body
+            const filteredEmails = allEmails.filter(email => {
+                const subject = email.subject ? email.subject.toLowerCase() : '';
+                const body = email.body ? email.body.toLowerCase() : '';
+                const summary = email.summary ? email.summary.toLowerCase() : '';
+                
+                return subject.includes(searchTerm) || 
+                       body.includes(searchTerm) || 
+                       summary.includes(searchTerm);
+            });
+            
+            renderEmails(filteredEmails);
+        }
+        
+        // Delete a category
+        function deleteCategory(categoryId) {
+            if (confirm('Are you sure you want to delete this category? All emails in this category will become uncategorized.')) {
+                fetch('/api/categories/' + categoryId, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => {
+                    if (response.status === 401) {
+                        // Redirect to login if unauthorized
+                        window.location.href = '/';
+                        return;
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data) { // Only process if we got valid data (not redirected)
+                        M.toast({html: 'Category deleted successfully'});
+                        // Reload categories to update the UI
+                        loadCategories();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting category:', error);
+                    M.toast({html: 'Error deleting category'});
+                    // Redirect to login on network errors as well
+                    if (error.name !== 'TypeError') {
+                        window.location.href = '/';
+                    }
+                });
+            }
+        }
+        
+        // Sync emails on initial load when no emails are found
+        function syncEmailsInitial() {
+            // Show sync loading overlay
+            document.getElementById('sync-loading-overlay').style.display = 'flex';
+            
+            fetch('/api/emails/sync', {
+                method: 'POST'
+            })
+            .then(response => {
+                if (response.status === 401) {
+                    // Redirect to login if unauthorized
+                    window.location.href = '/';
+                    return;
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data) { // Only process if we got valid data (not redirected)
+                    setTimeout(() => {
+                        loadEmails();
+                        // Hide sync loading overlay after sync is complete
+                        document.getElementById('sync-loading-overlay').style.display = 'none';
+                    }, 2000);
+                } else {
+                    // Hide sync loading overlay if there was an error
+                    document.getElementById('sync-loading-overlay').style.display = 'none';
+                }
+            })
+            .catch(error => {
+                console.error('Error syncing initial emails:', error);
+                M.toast({html: 'Error syncing initial emails'});
+                // Hide sync loading overlay after error
+                document.getElementById('sync-loading-overlay').style.display = 'none';
+                // Redirect to login on network errors as well
+                if (error.name !== 'TypeError') {
+                    window.location.href = '/';
+                }
+            });
+        }
+        
+        // Show loading indicator
+        function showLoading() {
+            document.getElementById('loading-indicator').style.display = 'flex';
+        }
+        
+        // Hide loading indicator
+        function hideLoading() {
+            document.getElementById('loading-indicator').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
