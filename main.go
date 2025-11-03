@@ -111,7 +111,7 @@ func main() {
 	sseManager := sse.NewSSEManager(appLogger)
 
 	// Initialize and start the background email sync job
-	// emailSyncJob := sse.NewEmailSyncJob(emailService, userRepo, sseManager, appLogger)
+	emailSyncJob := sse.NewEmailSyncJob(emailService, userRepo, sseManager, appLogger)
 
 	// Initialize handlers
 	e := echo.New()
@@ -138,7 +138,7 @@ func main() {
 	e.Static("/static", "internal/static")
 
 	// Start the email sync job in a separate goroutine
-	// go emailSyncJob.Start()
+	go emailSyncJob.Start()
 
 	// Start server
 	appLogger.Info("Starting server on port", cfg.Port)

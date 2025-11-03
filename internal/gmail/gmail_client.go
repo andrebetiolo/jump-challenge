@@ -52,7 +52,7 @@ func (t *oauth2Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 func (g *gmailClient) SyncEmails(ctx context.Context, userEmail string, maxResults int64, afterEmailID string) ([]*model.Email, error) {
 	// List messages with a query to fetch emails
 	user := "me" // Use 'me' to refer to the authenticated user
-	
+
 	// Build the query to filter emails - using a more general query since we're not just getting unread emails
 	var query string
 	if afterEmailID != "" {
@@ -61,16 +61,16 @@ func (g *gmailClient) SyncEmails(ctx context.Context, userEmail string, maxResul
 	} else {
 		query = "" // Empty query fetches all emails
 	}
-	
+
 	// Use provided maxResults, or fall back to the environment variable, or default to 10
 	if maxResults <= 0 {
-		maxFetchEmails := config.GetEnv("MAX_FETCH_EMAILS", "10")
+		maxFetchEmails := config.GetEnv("MAX_FETCH_EMAILS", "3")
 		maxFetch, _ := strconv.Atoi(maxFetchEmails)
 		maxResults = int64(maxFetch)
 	}
-	
+
 	req := g.client.Users.Messages.List(user).MaxResults(maxResults).Q(query)
-	
+
 	// If afterEmailID is provided, we might need to handle pagination to find emails after it
 	list, err := req.Do()
 	if err != nil {
@@ -82,14 +82,14 @@ func (g *gmailClient) SyncEmails(ctx context.Context, userEmail string, maxResul
 	// If afterEmailID is provided, we need to filter the results to exclude emails up to and including afterEmailID
 	// This is a simplified approach - in real usage, we'd need to check timestamps or position
 	shouldStartCollecting := afterEmailID == ""
-	
+
 	for _, msg := range list.Messages {
 		// If we're looking for emails after a specific email ID, skip until we find it
 		if afterEmailID != "" && msg.Id == afterEmailID {
 			shouldStartCollecting = true
 			continue
 		}
-		
+
 		// If we haven't found the afterEmailID yet, skip this email
 		if afterEmailID != "" && !shouldStartCollecting {
 			continue
@@ -185,7 +185,7 @@ func (g *gmailClient) extractMultipartBody(parts []*gmail.MessagePart) string {
 	if htmlBody != "" {
 		return htmlBody
 	}
-	
+
 	if textBody != "" {
 		// Convert text to basic HTML if no HTML is available
 		return g.textToHtml(textBody)
@@ -238,7 +238,7 @@ func (g *gmailClient) textToHtml(text string) string {
 	// Replace newlines with HTML paragraph breaks for basic formatting
 	result := ""
 	lines := strings.Split(text, "\n")
-	
+
 	for i, line := range lines {
 		line = strings.TrimSpace(line)
 		if line != "" {
@@ -249,7 +249,7 @@ func (g *gmailClient) textToHtml(text string) string {
 			result += "<p>&nbsp;</p>"
 		}
 	}
-	
+
 	return result
 }
 

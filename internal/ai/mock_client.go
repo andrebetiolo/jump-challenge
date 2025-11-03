@@ -2,8 +2,10 @@ package ai
 
 import (
 	"context"
+	"strconv"
 	"strings"
 
+	"jump-challenge/internal/config"
 	"jump-challenge/internal/model"
 )
 
@@ -21,7 +23,7 @@ func (m *MockAIClient) ClassifyEmail(ctx context.Context, emailBody string, cate
 	if m.ClassifyEmailFunc != nil {
 		return m.ClassifyEmailFunc(ctx, emailBody, categories)
 	}
-	
+
 	// Default mock behavior: return the first category name
 	if len(categories) > 0 {
 		return categories[0].Name, nil
@@ -33,10 +35,14 @@ func (m *MockAIClient) SummarizeEmail(ctx context.Context, emailBody string) (st
 	if m.SummarizeEmailFunc != nil {
 		return m.SummarizeEmailFunc(ctx, emailBody)
 	}
-	
+
+	maxFetchEmails := config.GetEnv("MAX_FETCH_EMAILS", "3")
+	maxFetch, _ := strconv.Atoi(maxFetchEmails)
+	maxResults := int(maxFetch)
+
 	// Default mock behavior: return a summary based on first few words
-	if len(emailBody) > 50 {
-		return strings.TrimSpace(emailBody[:50]) + "... (summary)", nil
+	if len(emailBody) > maxResults {
+		return strings.TrimSpace(emailBody[:maxResults]) + "... (summary)", nil
 	}
 	return strings.TrimSpace(emailBody) + " (summary)", nil
 }

@@ -258,7 +258,7 @@ func (r *PostgresEmailRepository) FindByID(ctx context.Context, id string) (*mod
 }
 
 func (r *PostgresEmailRepository) FindByUserID(ctx context.Context, userID string) ([]*model.Email, error) {
-	query := `SELECT id, user_id, gmail_id, from_email, subject, body, summary, category_id, received_at, archived, created_at, updated_at FROM emails WHERE user_id = $1`
+	query := `SELECT id, user_id, gmail_id, from_email, subject, body, summary, category_id, received_at, archived, created_at, updated_at FROM emails WHERE user_id = $1 ORDER BY received_at DESC`
 	rows, err := r.db.QueryContext(ctx, query, userID)
 	if err != nil {
 		return nil, err
@@ -282,7 +282,7 @@ func (r *PostgresEmailRepository) FindByUserID(ctx context.Context, userID strin
 }
 
 func (r *PostgresEmailRepository) FindByCategoryID(ctx context.Context, categoryID string) ([]*model.Email, error) {
-	query := `SELECT id, user_id, gmail_id, from_email, subject, body, summary, category_id, received_at, archived, created_at, updated_at FROM emails WHERE category_id = $1`
+	query := `SELECT id, user_id, gmail_id, from_email, subject, body, summary, category_id, received_at, archived, created_at, updated_at FROM emails WHERE category_id = $1 ORDER BY received_at DESC`
 	rows, err := r.db.QueryContext(ctx, query, categoryID)
 	if err != nil {
 		return nil, err

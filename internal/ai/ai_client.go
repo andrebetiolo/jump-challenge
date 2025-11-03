@@ -8,8 +8,10 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 
+	"jump-challenge/internal/config"
 	"jump-challenge/internal/logger"
 	"jump-challenge/internal/model"
 	"jump-challenge/internal/service"
@@ -200,6 +202,10 @@ Please respond with only the exact category name that best fits the email or ret
 		categoryList,
 		emailBody)
 
+	maxFetchEmails := config.GetEnv("MAX_FETCH_EMAILS", "3")
+	maxFetch, _ := strconv.Atoi(maxFetchEmails)
+	maxResults := int(maxFetch)
+
 	request := chatCompletionRequest{
 		Model: getModel(a.provider),
 		Messages: []message{
@@ -208,7 +214,7 @@ Please respond with only the exact category name that best fits the email or ret
 				Content: prompt,
 			},
 		},
-		MaxTokens: 50,
+		MaxTokens: maxResults,
 	}
 
 	resp, err := a.makeRequest(ctx, request)

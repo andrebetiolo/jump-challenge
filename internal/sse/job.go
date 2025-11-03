@@ -58,16 +58,20 @@ func NewEmailSyncJob(
 // RunSync executes the email sync for all users - exported for testing
 func (j *EmailSyncJob) RunSync() {
 	j.logger.Info("Running periodic email sync...")
-	
+
 	// Get all users to sync emails for
 	users, err := j.userRepo.FindAll(j.ctx)
 	if err != nil {
 		j.logger.Error("Failed to get users for email sync:", err)
 		return
 	}
-	
+
 	j.logger.Info("Syncing emails for", len(users), "users")
-	
+
+	maxFetchEmails := config.GetEnv("MAX_FETCH_EMAILS", "3")
+	maxFetch, _ := strconv.Atoi(maxFetchEmails)
+	maxResults := int64(maxFetch)
+
 	for _, user := range users {
 		// Check if this user has active SSE connections
 		hasConnection := j.sseManager.HasUserConnection(user.ID)
@@ -75,21 +79,21 @@ func (j *EmailSyncJob) RunSync() {
 			j.logger.Info("Skipping email sync for user", user.ID, "no active SSE connections")
 			continue
 		}
-		
+
 		// Get the most recent email for this user as a reference point
 		lastEmail, err := j.getMostRecentEmailForUser(user.ID)
 		var afterEmailID string
 		if err == nil && lastEmail != nil {
 			afterEmailID = lastEmail.GmailID
 		}
-		
+
 		// Sync emails for this user
-		err = j.emailService.SyncEmails(j.ctx, user.ID, 50, afterEmailID) // Fetch up to 50 new emails
+		err = j.emailService.SyncEmails(j.ctx, user.ID, maxResults, afterEmailID)
 		if err != nil {
 			j.logger.Error("Failed to sync emails for user", user.ID, ":", err)
 			continue
 		}
-		
+
 		// If there are new emails, send notification
 		if afterEmailID != "" {
 			// Get the newly synced emails since the last sync
@@ -98,18 +102,18 @@ func (j *EmailSyncJob) RunSync() {
 				j.logger.Error("Failed to get new emails for user", user.ID, ":", err)
 				continue
 			}
-			
+
 			if len(newEmails) > 0 {
 				j.logger.Info("Found", len(newEmails), "new emails for user", user.ID)
-				
+
 				// Send the new emails via SSE to the user
 				for _, email := range newEmails {
 					j.sseManager.BroadcastEmailToUser(user.ID, email)
 				}
-				
+
 				// Send a summary notification
 				summary := map[string]interface{}{
-					"count": len(newEmails),
+					"count":   len(newEmails),
 					"message": fmt.Sprintf("%d new emails received", len(newEmails)),
 				}
 				j.sseManager.BroadcastToUser(user.ID, "email_summary", summary)
@@ -121,7 +125,7 @@ func (j *EmailSyncJob) RunSync() {
 				j.logger.Error("Failed to get emails for user", user.ID, ":", err)
 				continue
 			}
-			
+
 			// Send notification for all fetched emails if any were found
 			if len(allEmails) > 0 {
 				// Only send the most recent batch (up to 10) to avoid overloading the client
@@ -129,7 +133,7 @@ func (j *EmailSyncJob) RunSync() {
 				if sendCount > 10 {
 					sendCount = 10
 				}
-				
+
 				for i := 0; i < sendCount; i++ {
 					email := allEmails[len(allEmails)-1-i] // Most recent first
 					j.sseManager.BroadcastEmailToUser(user.ID, email)
@@ -137,7 +141,7 @@ func (j *EmailSyncJob) RunSync() {
 			}
 		}
 	}
-	
+
 	j.logger.Info("Completed periodic email sync")
 }
 
@@ -196,8 +200,12 @@ func (j *EmailSyncJob) runSync() {
 			afterEmailID = lastEmail.GmailID
 		}
 
+		maxFetchEmails := config.GetEnv("MAX_FETCH_EMAILS", "3")
+		maxFetch, _ := strconv.Atoi(maxFetchEmails)
+		maxResults := int64(maxFetch)
+
 		// Sync emails for this user
-		err = j.emailService.SyncEmails(j.ctx, user.ID, 50, afterEmailID) // Fetch up to 50 new emails
+		err = j.emailService.SyncEmails(j.ctx, user.ID, maxResults, afterEmailID) // Fetch up to maxResults new emails
 		if err != nil {
 			j.logger.Error("Failed to sync emails for user", user.ID, ":", err)
 			continue

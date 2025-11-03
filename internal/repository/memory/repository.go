@@ -3,6 +3,7 @@ package memory
 import (
 	"context"
 	"errors"
+	"sort"
 	"sync"
 
 	"jump-challenge/internal/model"
@@ -208,6 +209,12 @@ func (r *InMemoryEmailRepository) FindByUserID(ctx context.Context, userID strin
 			result = append(result, email)
 		}
 	}
+	
+	// Sort emails by received_at in descending order (most recent first)
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].ReceivedAt.After(result[j].ReceivedAt)
+	})
+	
 	return result, nil
 }
 
@@ -221,6 +228,12 @@ func (r *InMemoryEmailRepository) FindByCategoryID(ctx context.Context, category
 			result = append(result, email)
 		}
 	}
+	
+	// Sort emails by received_at in descending order (most recent first)
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].ReceivedAt.After(result[j].ReceivedAt)
+	})
+	
 	return result, nil
 }
 

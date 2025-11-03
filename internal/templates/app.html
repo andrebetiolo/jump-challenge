@@ -1601,29 +1601,17 @@
             if (currentCategory === 'all' || currentCategory === email.category_id) {
                 renderEmails(currentCategory === 'all' ? allEmails : allEmails.filter(e => e.category_id === currentCategory));
             }
-            
-            // Show toast notification
-            M.toast({
-                html: `New email: ${email.subject.substring(0, 50)}${email.subject.length > 50 ? '...' : ''}`,
-                displayLength: 5000
-            });
         }
         
         // Handle email summary notification
         function handleEmailSummary(summary) {
             console.log('Email summary received:', summary);
-            
-            // Show notification for new emails
-            M.toast({
-                html: `${summary.count} new email${summary.count !== 1 ? 's' : ''} received`,
-                displayLength: 3000
-            });
         }
         
         // Initialize SSE when the page loads
         $(document).ready(function(){
             // Initialize SSE after Materialize components
-            // initSSE();
+            initSSE();
         });
     </script>
 </body>
