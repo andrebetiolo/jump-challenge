@@ -64,7 +64,7 @@ func getModel(provider string) string {
 	case ProviderDeepSeek:
 		return "deepseek-chat" // DeepSeek's chat model
 	case ProviderGemini:
-		return "gemini-2.0-flash-lite" // Gemini's model
+		return config.GetEnv("DEFAULT_MODEL", "gemini-2.0-flash-lite") // Gemini's model
 	default:
 		return "gpt-4o" // OpenAI fallback
 	}
