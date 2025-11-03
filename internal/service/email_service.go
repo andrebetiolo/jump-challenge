@@ -58,52 +58,68 @@ func (s *emailService) SyncEmails(ctx context.Context, userID string, maxResults
 		return fmt.Errorf("failed to get emails from Gmail: %w", err)
 	}
 
-	// Process each email
-	var wg sync.WaitGroup
-	errChan := make(chan error, len(gmailEmails))
+	// Get the last 50 emails from the user's database to check for duplicates
+	userEmails, err := s.emailRepo.FindByUserID(ctx, userID)
+	if err != nil {
+		s.logger.Warn("Failed to get user's existing emails for comparison:", err)
+		// Continue anyway, just won't be able to check for duplicates properly
+		userEmails = []*model.Email{}
+	}
 
+	// Create a map for quick lookup of existing email IDs
+	existingEmailMap := make(map[string]*model.Email)
+	for _, email := range userEmails {
+		existingEmailMap[email.GmailID] = email
+	}
+
+	// Filter to only process emails that don't already exist
+	var emailsToProcess []*model.Email
 	for _, gmailEmail := range gmailEmails {
+		if _, exists := existingEmailMap[gmailEmail.GmailID]; !exists {
+			gmailEmail.UserID = userID
+			emailsToProcess = append(emailsToProcess, gmailEmail)
+		} else {
+			s.logger.Info("Email already exists, skipping:", gmailEmail.GmailID)
+		}
+	}
+
+	s.logger.Info("Fetched", len(gmailEmails), "emails from Gmail, processing", len(emailsToProcess), "new emails")
+
+	// Process only the new emails
+	var wg sync.WaitGroup
+	errChan := make(chan error, len(emailsToProcess))
+
+	for _, email := range emailsToProcess {
 		wg.Add(1)
-		go func(email *model.Email) {
+		go func(e *model.Email) {
 			defer wg.Done()
 
-			// Assign the user ID to the email
-			email.UserID = userID
-
-			// Check if email already exists for this user and Gmail ID
-			existingEmail, err := s.emailRepo.FindByGmailID(ctx, userID, email.GmailID)
-			if err == nil && existingEmail != nil {
-				// Email already exists, skip processing
-				s.logger.Info("Email already exists, skipping:", email.GmailID)
-				return
-			}
-
 			// Classify and summarize the email
-			if err := s.ClassifyAndSummarizeEmail(ctx, email, categories); err != nil {
+			if err := s.ClassifyAndSummarizeEmail(ctx, e, categories); err != nil {
 				s.logger.Error("Failed to classify and summarize email:", err)
 				errChan <- err
 				return
 			}
 
 			// Save the email to our database
-			if err := s.emailRepo.Create(ctx, email); err != nil {
+			if err := s.emailRepo.Create(ctx, e); err != nil {
 				s.logger.Error("Failed to save email:", err)
 				errChan <- err
 				return
 			}
 
 			// Archive the email in Gmail
-			if err := s.gmailClient.ArchiveEmail(ctx, user.Email, email.GmailID); err != nil {
+			if err := s.gmailClient.ArchiveEmail(ctx, user.Email, e.GmailID); err != nil {
 				s.logger.Error("Failed to archive email in Gmail:", err)
 				// Don't return error here, we still want to save the email
 			} else {
-				email.Archived = true
+				e.Archived = true
 				// Update the email to mark as archived
-				if err := s.emailRepo.Update(ctx, email); err != nil {
+				if err := s.emailRepo.Update(ctx, e); err != nil {
 					s.logger.Error("Failed to update email archived status:", err)
 				}
 			}
-		}(gmailEmail)
+		}(email)
 	}
 
 	wg.Wait()
@@ -122,15 +138,117 @@ func (s *emailService) SyncEmails(ctx context.Context, userID string, maxResults
 		return fmt.Errorf("failed to sync some emails: %w", syncErr)
 	}
 
-	for _, email := range gmailEmails {
-		email.UserID = user.ID
-		err := s.emailRepo.Create(ctx, email)
-		if err != nil {
-			return err
+	return nil
+}
+
+// SyncEmailsWithNewEmails is similar to SyncEmails but returns the newly processed emails
+func (s *emailService) SyncEmailsWithNewEmails(ctx context.Context, userID string, maxResults int64, afterEmailID string) ([]*model.Email, []*model.Email, error) {
+	// Get user to access Gmail
+	user, err := s.userRepo.FindByID(ctx, userID)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get user: %w", err)
+	}
+
+	// Get all categories to use for classification (shared across all users)
+	categories, err := s.categoryRepo.FindAll(ctx)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get categories: %w", err)
+	}
+
+	// Get emails from Gmail with the specified maxResults and afterEmailID
+	gmailEmails, err := s.gmailClient.SyncEmails(ctx, user.Email, maxResults, afterEmailID)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get emails from Gmail: %w", err)
+	}
+
+	// Get the last 50 emails from the user's database to check for duplicates
+	userEmails, err := s.emailRepo.FindByUserID(ctx, userID)
+	if err != nil {
+		s.logger.Warn("Failed to get user's existing emails for comparison:", err)
+		// Continue anyway, just won't be able to check for duplicates properly
+		userEmails = []*model.Email{}
+	}
+
+	// Create a map for quick lookup of existing email IDs
+	existingEmailMap := make(map[string]*model.Email)
+	for _, email := range userEmails {
+		existingEmailMap[email.GmailID] = email
+	}
+
+	// Filter to only process emails that don't already exist
+	var emailsToProcess []*model.Email
+	for _, gmailEmail := range gmailEmails {
+		if _, exists := existingEmailMap[gmailEmail.GmailID]; !exists {
+			gmailEmail.UserID = userID
+			emailsToProcess = append(emailsToProcess, gmailEmail)
+		} else {
+			s.logger.Info("Email already exists, skipping:", gmailEmail.GmailID)
 		}
 	}
 
-	return nil
+	s.logger.Info("Fetched", len(gmailEmails), "emails from Gmail, processing", len(emailsToProcess), "new emails")
+
+	// Process only the new emails
+	var processedEmails []*model.Email
+	var mu sync.Mutex // Mutex to protect access to processedEmails
+	var wg sync.WaitGroup
+	errChan := make(chan error, len(emailsToProcess))
+
+	for _, email := range emailsToProcess {
+		wg.Add(1)
+		go func(e *model.Email) {
+			defer wg.Done()
+
+			// Classify and summarize the email
+			if err := s.ClassifyAndSummarizeEmail(ctx, e, categories); err != nil {
+				s.logger.Error("Failed to classify and summarize email:", err)
+				errChan <- err
+				return
+			}
+
+			// Save the email to our database
+			if err := s.emailRepo.Create(ctx, e); err != nil {
+				s.logger.Error("Failed to save email:", err)
+				errChan <- err
+				return
+			}
+
+			// Archive the email in Gmail
+			if err := s.gmailClient.ArchiveEmail(ctx, user.Email, e.GmailID); err != nil {
+				s.logger.Error("Failed to archive email in Gmail:", err)
+				// Don't return error here, we still want to save the email
+			} else {
+				e.Archived = true
+				// Update the email to mark as archived
+				if err := s.emailRepo.Update(ctx, e); err != nil {
+					s.logger.Error("Failed to update email archived status:", err)
+				}
+			}
+
+			// Add to processed emails list in a thread-safe way
+			mu.Lock()
+			processedEmails = append(processedEmails, e)
+			mu.Unlock()
+		}(email)
+	}
+
+	wg.Wait()
+	close(errChan)
+
+	// Check for any errors during processing
+	var syncErr error
+	for err := range errChan {
+		if err != nil {
+			syncErr = err // Just capture the first error for now
+			break
+		}
+	}
+
+	if syncErr != nil {
+		return gmailEmails, nil, fmt.Errorf("failed to sync some emails: %w", syncErr)
+	}
+
+	return gmailEmails, processedEmails, nil
 }
 
 func (s *emailService) GetEmailsByUser(ctx context.Context, userID string) ([]*model.Email, error) {

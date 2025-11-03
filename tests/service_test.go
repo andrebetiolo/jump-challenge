@@ -6,13 +6,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
 	"jump-challenge/internal/ai"
 	"jump-challenge/internal/gmail"
 	"jump-challenge/internal/logger"
 	"jump-challenge/internal/model"
 	"jump-challenge/internal/repository/memory"
 	"jump-challenge/internal/service"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestEmailServiceSyncEmails(t *testing.T) {
@@ -50,7 +51,7 @@ func TestEmailServiceSyncEmails(t *testing.T) {
 	emailService := service.NewEmailService(emailRepo, categoryRepo, userRepo, mockGmailClient, mockAIClient, appLogger)
 
 	// Execute
-	err := emailService.SyncEmails(context.Background(), user.ID, 10, "")
+	err := emailService.SyncEmails(context.Background(), user.ID, 3, "")
 
 	// Verify
 	assert.NoError(t, err)

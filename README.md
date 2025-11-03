@@ -75,7 +75,7 @@ make kill           # Kill process running on PORT
 - `DATABASE_URL`: Database connection string (optional for in-memory)
 - `AI_API_KEY`: API key for AI service
 - `AI_PROVIDER`: AI provider (default: gemini, can be deepseek)
-- `MAX_FETCH_EMAILS`: Maximum number of emails to fetch when not specified (default: 10)
+- `MAX_FETCH_EMAILS`: Maximum number of emails to fetch when not specified (default: 3)
 - `ENV`: Environment (development/production)
 
 ## API Endpoints

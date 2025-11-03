@@ -87,58 +87,31 @@ func (j *EmailSyncJob) RunSync() {
 			afterEmailID = lastEmail.GmailID
 		}
 
-		// Sync emails for this user
-		err = j.emailService.SyncEmails(j.ctx, user.ID, maxResults, afterEmailID)
+		// Sync emails for this user - get both fetched emails and newly processed emails
+		fetchedEmails, newProcessedEmails, err := j.emailService.SyncEmailsWithNewEmails(j.ctx, user.ID, maxResults, afterEmailID)
 		if err != nil {
 			j.logger.Error("Failed to sync emails for user", user.ID, ":", err)
 			continue
 		}
 
-		// If there are new emails, send notification
-		if afterEmailID != "" {
-			// Get the newly synced emails since the last sync
-			newEmails, err := j.getEmailsAfter(user.ID, afterEmailID)
-			if err != nil {
-				j.logger.Error("Failed to get new emails for user", user.ID, ":", err)
-				continue
+		j.logger.Info("Fetched", len(fetchedEmails), "emails from Gmail for user", user.ID, ", processed", len(newProcessedEmails), "new emails")
+
+		// Send only the newly processed emails via SSE to the user
+		if len(newProcessedEmails) > 0 {
+			j.logger.Info("Sending", len(newProcessedEmails), "new emails via SSE to user", user.ID)
+
+			// Send the new emails via SSE to the user - these are already processed (have summaries)
+			for _, email := range newProcessedEmails {
+				// Send emails that have been processed (have summaries)
+				j.sseManager.BroadcastEmailToUser(user.ID, email)
 			}
 
-			if len(newEmails) > 0 {
-				j.logger.Info("Found", len(newEmails), "new emails for user", user.ID)
-
-				// Send the new emails via SSE to the user
-				for _, email := range newEmails {
-					j.sseManager.BroadcastEmailToUser(user.ID, email)
-				}
-
-				// Send a summary notification
-				summary := map[string]interface{}{
-					"count":   len(newEmails),
-					"message": fmt.Sprintf("%d new emails received", len(newEmails)),
-				}
-				j.sseManager.BroadcastToUser(user.ID, "email_summary", summary)
+			// Send a summary notification
+			summary := map[string]interface{}{
+				"count":   len(newProcessedEmails),
+				"message": fmt.Sprintf("%d new emails received and processed", len(newProcessedEmails)),
 			}
-		} else {
-			// First-time sync - get the most recent emails to see if we should send notification
-			allEmails, err := j.emailService.GetEmailsByUser(j.ctx, user.ID)
-			if err != nil {
-				j.logger.Error("Failed to get emails for user", user.ID, ":", err)
-				continue
-			}
-
-			// Send notification for all fetched emails if any were found
-			if len(allEmails) > 0 {
-				// Only send the most recent batch (up to 10) to avoid overloading the client
-				sendCount := len(allEmails)
-				if sendCount > 10 {
-					sendCount = 10
-				}
-
-				for i := 0; i < sendCount; i++ {
-					email := allEmails[len(allEmails)-1-i] // Most recent first
-					j.sseManager.BroadcastEmailToUser(user.ID, email)
-				}
-			}
+			j.sseManager.BroadcastToUser(user.ID, "email_summary", summary)
 		}
 	}
 
@@ -204,58 +177,31 @@ func (j *EmailSyncJob) runSync() {
 		maxFetch, _ := strconv.Atoi(maxFetchEmails)
 		maxResults := int64(maxFetch)
 
-		// Sync emails for this user
-		err = j.emailService.SyncEmails(j.ctx, user.ID, maxResults, afterEmailID) // Fetch up to maxResults new emails
+		// Sync emails for this user - get both fetched emails and newly processed emails
+		fetchedEmails, newProcessedEmails, err := j.emailService.SyncEmailsWithNewEmails(j.ctx, user.ID, maxResults, afterEmailID)
 		if err != nil {
 			j.logger.Error("Failed to sync emails for user", user.ID, ":", err)
 			continue
 		}
 
-		// If there are new emails, send notification
-		if afterEmailID != "" {
-			// Get the newly synced emails since the last sync
-			newEmails, err := j.getEmailsAfter(user.ID, afterEmailID)
-			if err != nil {
-				j.logger.Error("Failed to get new emails for user", user.ID, ":", err)
-				continue
+		j.logger.Info("Fetched", len(fetchedEmails), "emails from Gmail for user", user.ID, ", processed", len(newProcessedEmails), "new emails")
+
+		// Send only the newly processed emails via SSE to the user
+		if len(newProcessedEmails) > 0 {
+			j.logger.Info("Sending", len(newProcessedEmails), "new emails via SSE to user", user.ID)
+
+			// Send the new emails via SSE to the user - these are already processed (have summaries)
+			for _, email := range newProcessedEmails {
+				// Send emails that have been processed (have summaries)
+				j.sseManager.BroadcastEmailToUser(user.ID, email)
 			}
 
-			if len(newEmails) > 0 {
-				j.logger.Info("Found", len(newEmails), "new emails for user", user.ID)
-
-				// Send the new emails via SSE to the user
-				for _, email := range newEmails {
-					j.sseManager.BroadcastEmailToUser(user.ID, email)
-				}
-
-				// Send a summary notification
-				summary := map[string]interface{}{
-					"count":   len(newEmails),
-					"message": fmt.Sprintf("%d new emails received", len(newEmails)),
-				}
-				j.sseManager.BroadcastToUser(user.ID, "email_summary", summary)
+			// Send a summary notification
+			summary := map[string]interface{}{
+				"count":   len(newProcessedEmails),
+				"message": fmt.Sprintf("%d new emails received and processed", len(newProcessedEmails)),
 			}
-		} else {
-			// First-time sync - get the most recent emails to see if we should send notification
-			allEmails, err := j.emailService.GetEmailsByUser(j.ctx, user.ID)
-			if err != nil {
-				j.logger.Error("Failed to get emails for user", user.ID, ":", err)
-				continue
-			}
-
-			// Send notification for all fetched emails if any were found
-			if len(allEmails) > 0 {
-				// Only send the most recent batch (up to 10) to avoid overloading the client
-				sendCount := len(allEmails)
-				if sendCount > 10 {
-					sendCount = 10
-				}
-
-				for i := 0; i < sendCount; i++ {
-					email := allEmails[len(allEmails)-1-i] // Most recent first
-					j.sseManager.BroadcastEmailToUser(user.ID, email)
-				}
-			}
+			j.sseManager.BroadcastToUser(user.ID, "email_summary", summary)
 		}
 	}
 

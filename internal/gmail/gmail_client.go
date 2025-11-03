@@ -62,7 +62,7 @@ func (g *gmailClient) SyncEmails(ctx context.Context, userEmail string, maxResul
 		query = "" // Empty query fetches all emails
 	}
 
-	// Use provided maxResults, or fall back to the environment variable, or default to 10
+	// Use provided maxResults, or fall back to the environment variable, or default to 3
 	if maxResults <= 0 {
 		maxFetchEmails := config.GetEnv("MAX_FETCH_EMAILS", "3")
 		maxFetch, _ := strconv.Atoi(maxFetchEmails)

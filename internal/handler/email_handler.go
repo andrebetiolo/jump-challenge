@@ -42,11 +42,11 @@ func (h *EmailHandler) SyncEmails(c echo.Context) error {
 	// Get query parameters for email sync configuration
 	maxResultsStr := c.QueryParam("max_results")
 	afterEmailID := c.QueryParam("after_email_id")
-	
-	// Parse max_results parameter, default to 10 if not provided or invalid
-	maxResults := int64(10)
+
+	// Parse max_results parameter, default to 3 if not provided or invalid
+	maxResults := int64(3)
 	if maxResultsStr != "" {
-		parsed, err := strconv.ParseInt(maxResultsStr, 10, 64)
+		parsed, err := strconv.ParseInt(maxResultsStr, 3, 64)
 		if err == nil && parsed > 0 {
 			maxResults = parsed
 		}
@@ -281,7 +281,7 @@ func (h *EmailHandler) SSEEmailUpdates(c echo.Context) error {
 		},
 		"time": time.Now().Unix(),
 	}
-	
+
 	initJSON, _ := json.Marshal(initEvent)
 	fmt.Fprintf(c.Response(), "data: %s\n\n", initJSON)
 	c.Response().Flush()
