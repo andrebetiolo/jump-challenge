@@ -11,6 +11,7 @@ This is an intelligent email organization application that uses AI to classify a
 - Gmail integration (read, archive, mark as read)
 - Bulk email actions
 - Session-based authentication
+- Configurable email sync (fetch X last emails or sync after specific email)
 
 ## Architecture
 
@@ -25,9 +26,9 @@ The application follows a modular architecture with clear separation of concerns
 
 ## Prerequisites
 
-- Go 1.21+
+- Go 1.24+
 - Google Cloud Project with Gmail API enabled
-- AI service API key (e.g., OpenAI, DeepSeek)
+- AI service API key (e.g., OpenAI, Gemini, DeepSeek)
 
 ## Setup
 
@@ -47,7 +48,21 @@ go mod download
 4. Run the application:
 
 ```bash
-go run cmd/server/main.go
+go run main.go
+```
+
+## Makefile CLI Commands
+
+The project includes a Makefile with helpful commands for development:
+
+```bash
+make help           # Show available commands
+make dev            # Run the application
+make test           # Run all tests with race detection
+make build          # Build the application
+make cover          # Run tests and show coverage
+make cover-html     # Run tests and open coverage report in browser
+make kill           # Kill process running on PORT
 ```
 
 ## Environment Variables
@@ -59,7 +74,8 @@ go run cmd/server/main.go
 - `SESSION_SECRET`: Secret for session encryption
 - `DATABASE_URL`: Database connection string (optional for in-memory)
 - `AI_API_KEY`: API key for AI service
-- `AI_PROVIDER`: AI provider (default: openai, can be deepseek)
+- `AI_PROVIDER`: AI provider (default: gemini, can be deepseek)
+- `MAX_FETCH_EMAILS`: Maximum number of emails to fetch when not specified (default: 10)
 - `ENV`: Environment (development/production)
 
 ## API Endpoints
@@ -79,7 +95,7 @@ go run cmd/server/main.go
 ### Emails
 - `GET /emails` - List user's emails
 - `GET /emails/category/:id` - Get emails by category
-- `POST /emails/sync` - Sync emails from Gmail
+- `POST /emails/sync` - Sync emails from Gmail (supports max_results and after_email_id parameters)
 - `POST /emails/bulk-action` - Perform bulk action on emails
 
 ## Development
@@ -90,15 +106,22 @@ The application uses in-memory storage by default. To run tests:
 go test ./...
 ```
 
+Or using the Makefile:
+
+```bash
+make test
+```
+
 ## Technologies Used
 
 - Go 1.21+
 - Echo web framework
 - Goth OAuth library
 - Gmail API
-- OpenAI API, DeepSeek API (or other AI services)
+- OpenAI API, Gemini API, DeepSeek API (or other AI services)
 - PostgreSQL (optional)
 - Gorilla sessions
+- GNU Make (for CLI commands)
 
 ## Configuration
 

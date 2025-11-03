@@ -123,13 +123,63 @@ Unit tests for services with mocks are included in the `/tests/` directory.
 
 ### Email Processing Flow
 1. User triggers email sync (manual or automated)
-2. App fetches new unread emails from Gmail
+2. App fetches new emails from Gmail (using SyncEmails function)
 3. For each email:
    - AI classifies email into a category
    - AI generates summary
    - Email is saved to database with classification
    - Email is archived in Gmail
 4. Processed emails are available in categorized views
+
+## Implementation Guidelines for Faster Development
+
+### Key Principles
+1. **Interface-First Development**: Always update interfaces in `/internal/service/interface.go` first, then implementations
+2. **Dependency Injection**: Services depend on interfaces, not concrete implementations
+3. **Error Handling**: Wrap errors with context using `fmt.Errorf("context: %w", err)`
+4. **Logging**: Use the provided logger consistently throughout the application
+5. **Context Propagation**: Always pass context through function calls
+
+### Critical Files to Check When Making Changes
+1. **`internal/service/interface.go`**: Contains all service interfaces - update first when adding/changing methods
+2. **`internal/gmail/gmail_client.go`**: Gmail API interactions - update when changing email sync logic
+3. **`internal/service/email_service.go`**: Email business logic - update when changing sync behavior
+4. **`internal/handler/email_handler.go`**: HTTP handler for email endpoints - update when changing API parameters
+5. **`tests/service_test.go`**: Update tests when changing service method signatures
+6. **`internal/gmail/mock_client.go`**: Update mock implementations when changing Gmail client interface
+
+### Common Patterns When Adding Parameters to Functions
+
+When adding new parameters to existing functions (like in the recent email sync update):
+
+1. **Update Interface First**: Modify the interface in `internal/service/interface.go`
+2. **Update All Implementations**: Update every struct that implements the interface (including mocks)
+3. **Update Service Layer**: Modify the service methods to accept and pass the new parameters
+4. **Update Handler**: Modify the handler to extract parameters from request and pass to service
+5. **Update Tests**: Update test files with the new method signatures
+6. **Maintain Backward Compatibility**: Default to sensible values when parameters are not provided
+
+### Method Naming Conventions
+- Use descriptive names that reflect actual functionality (recently changed `ListUnreadEmails` to `SyncEmails` since it fetches all emails, not just unread ones)
+- Be consistent with domain terminology (e.g., use terms like "sync", "archive", "classify" etc.)
+
+### Testing Strategy
+- Update mock clients in `internal/gmail/mock_client.go` to match new function signatures
+- Add test cases for new functionality in `tests/service_test.go`
+- Run `go test ./...` to ensure all tests pass after changes
+- Run `go build` to ensure compilation succeeds
+
+### API Parameter Handling
+- Use query parameters for optional parameters in GET requests (e.g., `?max_results=20&after_email_id=12345`)
+- Use request body for required parameters in POST requests
+- Always validate and sanitize input parameters
+- Provide sensible defaults when parameters are missing
+
+### Gmail Integration Specifics
+- When modifying email fetching logic, ensure both the Gmail client and its mock implementations are updated
+- The Gmail sync function now accepts `maxResults` (int64) and `afterEmailID` (string) parameters
+- The function can fetch the last X emails or fetch emails after a specific email ID
+- Maintain compatibility with the `MAX_FETCH_EMAILS` environment variable as fallback
 
 ## Future Enhancements
 

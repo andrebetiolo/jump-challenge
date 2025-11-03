@@ -8,7 +8,7 @@ import (
 
 // MockGmailClient is a mock implementation of GmailClient for testing
 type MockGmailClient struct {
-	ListUnreadEmailsFunc func(ctx context.Context, userEmail string) ([]*model.Email, error)
+	SyncEmailsFunc       func(ctx context.Context, userEmail string, maxResults int64, afterEmailID string) ([]*model.Email, error)
 	ArchiveEmailFunc     func(ctx context.Context, userEmail, messageID string) error
 	MarkAsReadFunc       func(ctx context.Context, userEmail, messageID string) error
 	DeleteEmailsFunc     func(ctx context.Context, userEmail string, messageIDs []string) error
@@ -18,9 +18,9 @@ func NewMockGmailClient() *MockGmailClient {
 	return &MockGmailClient{}
 }
 
-func (m *MockGmailClient) ListUnreadEmails(ctx context.Context, userEmail string) ([]*model.Email, error) {
-	if m.ListUnreadEmailsFunc != nil {
-		return m.ListUnreadEmailsFunc(ctx, userEmail)
+func (m *MockGmailClient) SyncEmails(ctx context.Context, userEmail string, maxResults int64, afterEmailID string) ([]*model.Email, error) {
+	if m.SyncEmailsFunc != nil {
+		return m.SyncEmailsFunc(ctx, userEmail, maxResults, afterEmailID)
 	}
 	
 	// Default mock behavior: return an empty list

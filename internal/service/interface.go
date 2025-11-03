@@ -20,7 +20,7 @@ type CategoryService interface {
 }
 
 type EmailService interface {
-	SyncEmails(ctx context.Context, userID string) error
+	SyncEmails(ctx context.Context, userID string, maxResults int64, afterEmailID string) error
 	GetEmailsByUser(ctx context.Context, userID string) ([]*model.Email, error)
 	GetEmailsByCategory(ctx context.Context, categoryID string) ([]*model.Email, error)
 	ClassifyAndSummarizeEmail(ctx context.Context, email *model.Email, categories []*model.Category) error
@@ -31,7 +31,7 @@ type EmailService interface {
 
 // GmailClient interface for interacting with Gmail API
 type GmailClient interface {
-	ListUnreadEmails(ctx context.Context, userEmail string) ([]*model.Email, error)
+	SyncEmails(ctx context.Context, userEmail string, maxResults int64, afterEmailID string) ([]*model.Email, error)
 	ArchiveEmail(ctx context.Context, userEmail, messageID string) error
 	MarkAsRead(ctx context.Context, userEmail, messageID string) error
 	DeleteEmails(ctx context.Context, userEmail string, messageIDs []string) error

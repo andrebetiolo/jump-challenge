@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"strconv"
 
 	"jump-challenge/internal/model"
 	"jump-challenge/internal/service"
@@ -32,7 +33,20 @@ func (h *EmailHandler) SyncEmails(c echo.Context) error {
 		})
 	}
 
-	err = h.emailService.SyncEmails(c.Request().Context(), user.ID)
+	// Get query parameters for email sync configuration
+	maxResultsStr := c.QueryParam("max_results")
+	afterEmailID := c.QueryParam("after_email_id")
+	
+	// Parse max_results parameter, default to 10 if not provided or invalid
+	maxResults := int64(10)
+	if maxResultsStr != "" {
+		parsed, err := strconv.ParseInt(maxResultsStr, 10, 64)
+		if err == nil && parsed > 0 {
+			maxResults = parsed
+		}
+	}
+
+	err = h.emailService.SyncEmails(c.Request().Context(), user.ID, maxResults, afterEmailID)
 	if err != nil {
 		h.logger.Error("Failed to sync emails:", err)
 		return c.JSON(http.StatusInternalServerError, map[string]string{

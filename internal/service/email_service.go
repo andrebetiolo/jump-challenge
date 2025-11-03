@@ -39,7 +39,7 @@ func NewEmailService(
 	}
 }
 
-func (s *emailService) SyncEmails(ctx context.Context, userID string) error {
+func (s *emailService) SyncEmails(ctx context.Context, userID string, maxResults int64, afterEmailID string) error {
 	// Get user to access Gmail
 	user, err := s.userRepo.FindByID(ctx, userID)
 	if err != nil {
@@ -52,8 +52,8 @@ func (s *emailService) SyncEmails(ctx context.Context, userID string) error {
 		return fmt.Errorf("failed to get categories: %w", err)
 	}
 
-	// Get unread emails from Gmail
-	gmailEmails, err := s.gmailClient.ListUnreadEmails(ctx, user.Email)
+	// Get emails from Gmail with the specified maxResults and afterEmailID
+	gmailEmails, err := s.gmailClient.SyncEmails(ctx, user.Email, maxResults, afterEmailID)
 	if err != nil {
 		return fmt.Errorf("failed to get emails from Gmail: %w", err)
 	}

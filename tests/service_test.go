@@ -33,7 +33,7 @@ func TestEmailServiceSyncEmails(t *testing.T) {
 	categoryRepo.Create(context.Background(), category)
 
 	// Mock Gmail client to return a sample email
-	mockGmailClient.ListUnreadEmailsFunc = func(ctx context.Context, userEmail string) ([]*model.Email, error) {
+	mockGmailClient.SyncEmailsFunc = func(ctx context.Context, userEmail string, maxResults int64, afterEmailID string) ([]*model.Email, error) {
 		email := model.NewEmail(user.ID, "msg_123", "sender@example.com", "Test Subject", "Test body content", time.Now())
 		return []*model.Email{email}, nil
 	}
@@ -50,7 +50,7 @@ func TestEmailServiceSyncEmails(t *testing.T) {
 	emailService := service.NewEmailService(emailRepo, categoryRepo, userRepo, mockGmailClient, mockAIClient, appLogger)
 
 	// Execute
-	err := emailService.SyncEmails(context.Background(), user.ID)
+	err := emailService.SyncEmails(context.Background(), user.ID, 10, "")
 
 	// Verify
 	assert.NoError(t, err)

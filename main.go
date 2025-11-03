@@ -150,7 +150,7 @@ func NewUserSpecificGmailClient(userRepo repository.UserRepository, logger *logg
 	}
 }
 
-func (u *UserSpecificGmailClient) ListUnreadEmails(ctx context.Context, userEmail string) ([]*model.Email, error) {
+func (u *UserSpecificGmailClient) SyncEmails(ctx context.Context, userEmail string, maxResults int64, afterEmailID string) ([]*model.Email, error) {
 	// Find user by email to get their access token
 	user, err := u.userRepo.FindByEmail(ctx, userEmail)
 	if err != nil {
@@ -167,7 +167,7 @@ func (u *UserSpecificGmailClient) ListUnreadEmails(ctx context.Context, userEmai
 		return nil, fmt.Errorf("failed to create Gmail client: %w", err)
 	}
 
-	return gmailClient.ListUnreadEmails(ctx, userEmail)
+	return gmailClient.SyncEmails(ctx, userEmail, maxResults, afterEmailID)
 }
 
 func (u *UserSpecificGmailClient) ArchiveEmail(ctx context.Context, userEmail, messageID string) error {
