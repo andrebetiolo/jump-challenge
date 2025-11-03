@@ -923,16 +923,45 @@
             window.location.href = '/';
         }
         
+        // Generic API request function with 401 error handling
+        async function apiRequest(url, options = {}) {
+            try {
+                const response = await fetch(url, {
+                    ...options,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    }
+                });
+                
+                if (response.status === 401) {
+                    // Delete the session cookie when receiving a 401
+                    deleteCookie(GOTHIC_SESSION_COOKIE);
+                    
+                    // Redirect to login page
+                    window.location.href = '/';
+                    return null;
+                }
+                
+                return response;
+            } catch (error) {
+                // Handle network errors
+                if (error.name !== 'TypeError') {
+                    // Delete the session cookie on network errors as well
+                    deleteCookie(GOTHIC_SESSION_COOKIE);
+                    window.location.href = '/';
+                }
+                throw error; // Re-throw the error for further handling
+            }
+        }
+        
         // Load categories from API
         function loadCategories() {
-            fetch('/api/categories')
+            apiRequest('/api/categories')
                 .then(response => {
-                    if (response.status === 401) {
-                        // Redirect to login if unauthorized
-                        window.location.href = '/';
-                        return;
+                    if (response) {
+                        return response.json();
                     }
-                    return response.json();
                 })
                 .then(data => {
                     if (data) { // Only process if we got valid data (not redirected)
@@ -942,10 +971,6 @@
                 })
                 .catch(error => {
                     console.error('Error loading categories:', error);
-                    // Redirect to login on network errors as well
-                    if (error.name !== 'TypeError') {
-                        window.location.href = '/';
-                    }
                 });
         }
         
@@ -980,14 +1005,11 @@
         function loadEmails() {
             showLoading();
             
-            fetch('/api/emails')
+            apiRequest('/api/emails')
                 .then(response => {
-                    if (response.status === 401) {
-                        // Redirect to login if unauthorized
-                        window.location.href = '/';
-                        return;
+                    if (response) {
+                        return response.json();
                     }
-                    return response.json();
                 })
                 .then(data => {
                     if (data === null) { 
@@ -1001,10 +1023,6 @@
                 .catch(error => {
                     console.error('Error loading emails:', error);
                     hideLoading();
-                    // Redirect to login on network errors as well
-                    if (error.name !== 'TypeError') {
-                        window.location.href = '/';
-                    }
                 });
         }
         
@@ -1243,23 +1261,17 @@
                 return;
             }
             
-            fetch('/api/categories', {
+            apiRequest('/api/categories', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
                 body: JSON.stringify({
                     name: name,
                     description: description
                 })
             })
             .then(response => {
-                if (response.status === 401) {
-                    // Redirect to login if unauthorized
-                    window.location.href = '/';
-                    return;
+                if (response) {
+                    return response.json();
                 }
-                return response.json();
             })
             .then(data => {
                 if (data) { // Only process if we got valid data (not redirected)
@@ -1276,32 +1288,22 @@
             .catch(error => {
                 console.error('Error creating category:', error);
                 M.toast({html: 'Error creating category'});
-                // Redirect to login on network errors as well
-                if (error.name !== 'TypeError') {
-                    window.location.href = '/';
-                }
             });
         }
         
         // Delete a single email
         function deleteEmail(emailId) {
             if (confirm('Are you sure you want to delete this email? This will remove it from both Gmail and this application.')) {
-                fetch('/api/emails', {
+                apiRequest('/api/emails', {
                     method: 'DELETE',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
                     body: JSON.stringify({
                         email_ids: [emailId]
                     })
                 })
                 .then(response => {
-                    if (response.status === 401) {
-                        // Redirect to login if unauthorized
-                        window.location.href = '/';
-                        return;
+                    if (response) {
+                        return response.json();
                     }
-                    return response.json();
                 })
                 .then(data => {
                     if (data) { // Only process if we got valid data (not redirected)
@@ -1313,33 +1315,23 @@
                 .catch(error => {
                     console.error('Error deleting email:', error);
                     M.toast({html: 'Error deleting email'});
-                    // Redirect to login on network errors as well
-                    if (error.name !== 'TypeError') {
-                        window.location.href = '/';
-                    }
                 });
             }
         }
 
         // Archive a single email
         function archiveEmail(emailId) {
-            fetch('/api/emails/bulk-action', {
+            apiRequest('/api/emails/bulk-action', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
                 body: JSON.stringify({
                     email_ids: [emailId],
                     action: 'archive'
                 })
             })
             .then(response => {
-                if (response.status === 401) {
-                    // Redirect to login if unauthorized
-                    window.location.href = '/';
-                    return;
+                if (response) {
+                    return response.json();
                 }
-                return response.json();
             })
             .then(data => {
                 if (data) { // Only process if we got valid data (not redirected)
@@ -1351,10 +1343,6 @@
             .catch(error => {
                 console.error('Error archiving email:', error);
                 M.toast({html: 'Error archiving email'});
-                // Redirect to login on network errors as well
-                if (error.name !== 'TypeError') {
-                    window.location.href = '/';
-                }
             });
         }
         
@@ -1396,20 +1384,14 @@
                 });
             }
             
-            fetch(url, {
+            apiRequest(url, {
                 method: method,
-                headers: {
-                    'Content-Type': 'application/json'
-                },
                 body: body
             })
             .then(response => {
-                if (response.status === 401) {
-                    // Redirect to login if unauthorized
-                    window.location.href = '/';
-                    return;
+                if (response) {
+                    return response.json();
                 }
-                return response.json();
             })
             .then(data => {
                 if (data) { // Only process if we got valid data (not redirected)
@@ -1428,10 +1410,6 @@
             .catch(error => {
                 console.error('Error performing bulk action:', error);
                 M.toast({html: `Error ${action === 'delete' ? 'deleting' : 'performing bulk'} action`});
-                // Redirect to login on network errors as well
-                if (error.name !== 'TypeError') {
-                    window.location.href = '/';
-                }
             });
         }
         
@@ -1440,16 +1418,13 @@
             // Show sync loading overlay
             document.getElementById('sync-loading-overlay').style.display = 'flex';
             
-            fetch('/api/emails/sync', {
+            apiRequest('/api/emails/sync', {
                 method: 'POST'
             })
             .then(response => {
-                if (response.status === 401) {
-                    // Redirect to login if unauthorized
-                    window.location.href = '/';
-                    return;
+                if (response) {
+                    return response.json();
                 }
-                return response.json();
             })
             .then(data => {
                 if (data) { // Only process if we got valid data (not redirected)
@@ -1470,10 +1445,6 @@
                 M.toast({html: 'Error syncing emails'});
                 // Hide sync loading overlay after error
                 document.getElementById('sync-loading-overlay').style.display = 'none';
-                // Redirect to login on network errors as well
-                if (error.name !== 'TypeError') {
-                    window.location.href = '/';
-                }
             });
         }
         
@@ -1513,19 +1484,13 @@
         // Delete a category
         function deleteCategory(categoryId) {
             if (confirm('Are you sure you want to delete this category? All emails in this category will become uncategorized.')) {
-                fetch('/api/categories/' + categoryId, {
-                    method: 'DELETE',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
+                apiRequest('/api/categories/' + categoryId, {
+                    method: 'DELETE'
                 })
                 .then(response => {
-                    if (response.status === 401) {
-                        // Redirect to login if unauthorized
-                        window.location.href = '/';
-                        return;
+                    if (response) {
+                        return response.json();
                     }
-                    return response.json();
                 })
                 .then(data => {
                     if (data) { // Only process if we got valid data (not redirected)
@@ -1537,10 +1502,6 @@
                 .catch(error => {
                     console.error('Error deleting category:', error);
                     M.toast({html: 'Error deleting category'});
-                    // Redirect to login on network errors as well
-                    if (error.name !== 'TypeError') {
-                        window.location.href = '/';
-                    }
                 });
             }
         }
@@ -1550,16 +1511,13 @@
             // Show sync loading overlay
             document.getElementById('sync-loading-overlay').style.display = 'flex';
             
-            fetch('/api/emails/sync', {
+            apiRequest('/api/emails/sync', {
                 method: 'POST'
             })
             .then(response => {
-                if (response.status === 401) {
-                    // Redirect to login if unauthorized
-                    window.location.href = '/';
-                    return;
+                if (response) {
+                    return response.json();
                 }
-                return response.json();
             })
             .then(data => {
                 if (data) { // Only process if we got valid data (not redirected)
@@ -1578,10 +1536,6 @@
                 M.toast({html: 'Error syncing initial emails'});
                 // Hide sync loading overlay after error
                 document.getElementById('sync-loading-overlay').style.display = 'none';
-                // Redirect to login on network errors as well
-                if (error.name !== 'TypeError') {
-                    window.location.href = '/';
-                }
             });
         }
         
@@ -1594,6 +1548,83 @@
         function hideLoading() {
             document.getElementById('loading-indicator').style.display = 'none';
         }
+        
+        // Initialize Server-Sent Events for real-time email updates
+        function initSSE() {
+            // Create a new EventSource for the SSE endpoint
+            const eventSource = new EventSource('/api/sse');
+            
+            eventSource.onopen = function(event) {
+                console.log('Connected to email updates via SSE');
+            };
+            
+            eventSource.onmessage = function(event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    
+                    switch(data.type) {
+                        case 'new_email':
+                            handleNewEmail(data.data);
+                            break;
+                        case 'email_summary':
+                            handleEmailSummary(data.data);
+                            break;
+                        case 'connection':
+                            console.log('SSE connection established:', data.data);
+                            break;
+                        default:
+                            console.log('Received unknown event type:', data.type, data);
+                    }
+                } catch (error) {
+                    console.error('Error parsing SSE event:', error);
+                }
+            };
+            
+            eventSource.onerror = function(event) {
+                console.error('SSE connection error:', event);
+                // Attempt to reconnect after a delay
+                setTimeout(initSSE, 5000);
+                eventSource.close();
+            };
+        }
+        
+        // Handle new email received via SSE
+        function handleNewEmail(email) {
+            console.log('New email received:', email);
+            
+            // Add the new email to our local cache
+            if (!allEmails.some(e => e.id === email.id)) {
+                allEmails.unshift(email); // Add to beginning of array
+            }
+            
+            // Update email list if we're currently viewing all emails or the relevant category
+            if (currentCategory === 'all' || currentCategory === email.category_id) {
+                renderEmails(currentCategory === 'all' ? allEmails : allEmails.filter(e => e.category_id === currentCategory));
+            }
+            
+            // Show toast notification
+            M.toast({
+                html: `New email: ${email.subject.substring(0, 50)}${email.subject.length > 50 ? '...' : ''}`,
+                displayLength: 5000
+            });
+        }
+        
+        // Handle email summary notification
+        function handleEmailSummary(summary) {
+            console.log('Email summary received:', summary);
+            
+            // Show notification for new emails
+            M.toast({
+                html: `${summary.count} new email${summary.count !== 1 ? 's' : ''} received`,
+                displayLength: 3000
+            });
+        }
+        
+        // Initialize SSE when the page loads
+        $(document).ready(function(){
+            // Initialize SSE after Materialize components
+            // initSSE();
+        });
     </script>
 </body>
 </html>

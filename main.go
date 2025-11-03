@@ -20,10 +20,11 @@ import (
 	"jump-challenge/internal/repository/postgres"
 	"jump-challenge/internal/router"
 	"jump-challenge/internal/service"
+	"jump-challenge/internal/sse"
 
-	_ "github.com/lib/pq"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	_ "github.com/lib/pq"
 )
 
 func main() {
@@ -45,7 +46,7 @@ func main() {
 	var userRepo repository.UserRepository
 	var categoryRepo repository.CategoryRepository
 	var emailRepo repository.EmailRepository
-	
+
 	if cfg.DatabaseURL != "" {
 		// Use PostgreSQL repositories
 		db, err := sql.Open("postgres", cfg.DatabaseURL)
@@ -53,24 +54,24 @@ func main() {
 			log.Fatal("Failed to connect to database:", err)
 		}
 		defer db.Close()
-		
+
 		// Initialize PostgreSQL repositories
 		userRepo = postgres.NewPostgresUserRepository(db)
 		categoryRepo = postgres.NewPostgresCategoryRepository(db)
 		emailRepo = postgres.NewPostgresEmailRepository(db)
-		
+
 		// Initialize database tables
 		if err := postgres.InitializeDatabase(db); err != nil {
 			log.Fatal("Failed to initialize database:", err)
 		}
-		
+
 		appLogger.Info("Using PostgreSQL repositories")
 	} else {
 		// Use in-memory repositories
 		userRepo = memory.NewInMemoryUserRepository()
 		categoryRepo = memory.NewInMemoryCategoryRepository()
 		emailRepo = memory.NewInMemoryEmailRepository()
-		
+
 		appLogger.Info("Using in-memory repositories")
 	}
 
@@ -106,6 +107,12 @@ func main() {
 		appLogger,
 	)
 
+	// Initialize SSE manager for real-time email updates
+	sseManager := sse.NewSSEManager(appLogger)
+
+	// Initialize and start the background email sync job
+	// emailSyncJob := sse.NewEmailSyncJob(emailService, userRepo, sseManager, appLogger)
+
 	// Initialize handlers
 	e := echo.New()
 	e.HideBanner = true
@@ -117,7 +124,7 @@ func main() {
 
 	authHandler := handler.NewAuthHandler(authService, cfg, e.Logger)
 	categoryHandler := handler.NewCategoryHandler(categoryService, authHandler, e.Logger)
-	emailHandler := handler.NewEmailHandler(emailService, authHandler, e.Logger)
+	emailHandler := handler.NewEmailHandler(emailService, authHandler, sseManager, e.Logger) // Updated to include sseManager
 	unsubscribeHandler := handler.NewUnsubscribeHandler(unsubscribeService, authHandler, e.Logger)
 
 	// Get project root directory
@@ -130,10 +137,15 @@ func main() {
 	// Serve static files
 	e.Static("/static", "internal/static")
 
+	// Start the email sync job in a separate goroutine
+	// go emailSyncJob.Start()
+
 	// Start server
 	appLogger.Info("Starting server on port", cfg.Port)
 	if err := e.Start(":" + cfg.Port); err != nil {
 		appLogger.Error("Failed to start server:", err)
+		// Close SSE manager when shutting down
+		sseManager.Close()
 	}
 }
 

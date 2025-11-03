@@ -102,6 +102,30 @@ func (r *PostgresUserRepository) Update(ctx context.Context, user *model.User) e
 	return err
 }
 
+func (r *PostgresUserRepository) FindAll(ctx context.Context) ([]*model.User, error) {
+	query := `SELECT id, google_id, email, name, access_token, refresh_token, token_expiry, created_at, updated_at FROM users`
+	rows, err := r.db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []*model.User
+	for rows.Next() {
+		user := &model.User{}
+		err := rows.Scan(
+			&user.ID, &user.GoogleID, &user.Email, &user.Name,
+			&user.AccessToken, &user.RefreshToken, &user.TokenExpiry,
+			&user.CreatedAt, &user.UpdatedAt)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, user)
+	}
+
+	return users, rows.Err()
+}
+
 func (r *PostgresUserRepository) Delete(ctx context.Context, id string) error {
 	query := `DELETE FROM users WHERE id = $1`
 	_, err := r.db.ExecContext(ctx, query, id)

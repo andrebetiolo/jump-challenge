@@ -1,11 +1,15 @@
 package handler
 
 import (
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"jump-challenge/internal/model"
 	"jump-challenge/internal/service"
+	"jump-challenge/internal/sse"
 
 	"github.com/labstack/echo/v4"
 )
@@ -13,13 +17,15 @@ import (
 type EmailHandler struct {
 	emailService service.EmailService
 	authHandler  *AuthHandler
+	sseManager   *sse.SSEManager
 	logger       echo.Logger
 }
 
-func NewEmailHandler(emailService service.EmailService, authHandler *AuthHandler, logger echo.Logger) *EmailHandler {
+func NewEmailHandler(emailService service.EmailService, authHandler *AuthHandler, sseManager *sse.SSEManager, logger echo.Logger) *EmailHandler {
 	return &EmailHandler{
 		emailService: emailService,
 		authHandler:  authHandler,
+		sseManager:   sseManager,
 		logger:       logger,
 	}
 }
@@ -241,4 +247,55 @@ func (h *EmailHandler) ClassifyEmail(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]string{
 		"classification": classifiedCategory,
 	})
+}
+
+// SSEEmailUpdates provides Server-Sent Events for real-time email updates
+func (h *EmailHandler) SSEEmailUpdates(c echo.Context) error {
+	user, err := h.authHandler.GetCurrentUser(c)
+	if err != nil {
+		return c.JSON(http.StatusUnauthorized, map[string]string{
+			"error": "Unauthorized",
+		})
+	}
+
+	// Set response headers for SSE
+	c.Response().Header().Set("Content-Type", "text/event-stream")
+	c.Response().Header().Set("Cache-Control", "no-cache")
+	c.Response().Header().Set("Connection", "keep-alive")
+	c.Response().Header().Set("Access-Control-Allow-Origin", "*")
+
+	// Create a new SSE client for this user
+	clientChannel := h.sseManager.AddClient(user.ID)
+
+	// Remove client when connection closes
+	defer func() {
+		h.sseManager.RemoveClient(user.ID, clientChannel)
+	}()
+
+	// Send initial connection confirmation
+	initEvent := map[string]interface{}{
+		"type": "connection",
+		"data": map[string]string{
+			"message": "Connected to email updates",
+			"userId":  user.ID,
+		},
+		"time": time.Now().Unix(),
+	}
+	
+	initJSON, _ := json.Marshal(initEvent)
+	fmt.Fprintf(c.Response(), "data: %s\n\n", initJSON)
+	c.Response().Flush()
+
+	// Listen for messages on the client channel and send them to the client
+	for {
+		select {
+		case eventData := <-clientChannel:
+			// Send the event data to the client
+			fmt.Fprintf(c.Response(), "data: %s\n\n", eventData)
+			c.Response().Flush()
+		case <-c.Request().Context().Done():
+			// Client disconnected
+			return nil
+		}
+	}
 }

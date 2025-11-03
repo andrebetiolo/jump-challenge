@@ -83,4 +83,7 @@ func SetupRoutes(
 	protected.DELETE("/emails", emailHandler.DeleteEmails)
 	protected.POST("/emails/classify", emailHandler.ClassifyEmail)
 	protected.POST("/emails/unsubscribe", unsubscribeHandler.UnsubscribeEmails)
+	
+	// Real-time email updates via Server-Sent Events (SSE)
+	protected.GET("/sse", emailHandler.SSEEmailUpdates)
 }

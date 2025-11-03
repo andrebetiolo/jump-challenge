@@ -82,6 +82,17 @@ func (r *InMemoryUserRepository) Delete(ctx context.Context, id string) error {
 	return nil
 }
 
+func (r *InMemoryUserRepository) FindAll(ctx context.Context) ([]*model.User, error) {
+	r.mutex.RLock()
+	defer r.mutex.RUnlock()
+	
+	var users []*model.User
+	for _, user := range r.users {
+		users = append(users, user)
+	}
+	return users, nil
+}
+
 // GetAllUsers returns all users (needed for the Gmail client to find users by email)
 func (r *InMemoryUserRepository) GetAllUsers() []*model.User {
 	r.mutex.RLock()
